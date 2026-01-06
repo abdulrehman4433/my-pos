@@ -9,8 +9,8 @@ class Produk extends Model
 {
     use HasFactory;
 
-    protected $table = 'produk';
-    protected $primaryKey = 'id_produk';
+    protected $table = 'products';
+    protected $primaryKey = 'product_id';
     protected $guarded = [];
 
     public function branch()
@@ -20,7 +20,7 @@ class Produk extends Model
     
     public function kategori()
     {
-        return $this->belongsTo(Kategori::class, 'id_kategori', 'id_kategori');
+        return $this->belongsTo(Kategori::class, 'category_id', 'category_id');
     }
     
     /**

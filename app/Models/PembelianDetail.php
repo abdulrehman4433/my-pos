@@ -9,12 +9,12 @@ class PembelianDetail extends Model
 {
     use HasFactory;
 
-    protected $table = 'pembelian_detail';
-    protected $primaryKey = 'id_pembelian_detail';
+    protected $table = 'purchase_details';
+    protected $primaryKey = 'purchase_detail_id';
     protected $guarded = [];
 
     public function produk()
     {
-        return $this->hasOne(Produk::class, 'id_produk', 'id_produk');
+        return $this->hasOne(Produk::class, 'product_id', 'product_id');
     }
 }

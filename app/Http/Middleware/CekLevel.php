@@ -17,7 +17,7 @@ class CekLevel
      */
     public function handle(Request $request, Closure $next, ...$level)
     {
-        if (auth()->user() && in_array(auth()->user()->level, $level)) {
+        if (auth()->user() && in_array(auth()->user()->access_level, $level)) {
             return $next($request);
         }
 

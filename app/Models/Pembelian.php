@@ -9,13 +9,13 @@ class Pembelian extends Model
 {
     use HasFactory;
 
-    protected $table = 'pembelian';
-    protected $primaryKey = 'id_pembelian';
+    protected $table = 'purchases';
+    protected $primaryKey = 'purchase_id';
     protected $guarded = [];
 
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class, 'id_supplier', 'id_supplier');
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'supplier_id');
     }
 
     public function branch()

@@ -122,14 +122,14 @@
     function showData() {
         $.get('{{ route('setting.show') }}')
             .done(response => {
-                $('[name=nama_perusahaan]').val(response.nama_perusahaan);
-                $('[name=telepon]').val(response.telepon);
-                $('[name=alamat]').val(response.alamat);
-                $('[name=diskon]').val(response.diskon);
-                $('[name=tipe_nota]').val(response.tipe_nota);
-                $('title').text(response.nama_perusahaan + ' | Settings');
-                
-                let words = response.nama_perusahaan.split(' ');
+                $('[name=nama_perusahaan]').val(response.company_name);
+                $('[name=telepon]').val(response.phone);
+                $('[name=alamat]').val(response.address);
+                $('[name=diskon]').val(response.discount);
+                $('[name=tipe_nota]').val(response.receipt_type);
+                $('title').text(response.company_name + ' | Settings');
+
+                let words = response.company_name.split(' ');
                 let word  = '';
                 words.forEach(w => {
                     word += w.charAt(0);
@@ -137,9 +137,9 @@
                 $('.logo-mini').text(word);
                 $('.logo-lg').text(response.nama_perusahaan);
 
-                $('.tampil-logo').html(`<img src="{{ url('/') }}${response.path_logo}" width="200">`);
-                $('.tampil-kartu-member').html(`<img src="{{ url('/') }}${response.path_kartu_member}" width="300">`);
-                $('[rel=icon]').attr('href', `{{ url('/') }}/${response.path_logo}`);
+                $('.tampil-logo').html(`<img src="{{ url('/') }}${response.logo_path}" width="200">`);
+                $('.tampil-kartu-member').html(`<img src="{{ url('/') }}${response.member_card_path}" width="300">`);
+                $('[rel=icon]').attr('href', `{{ url('/') }}/${response.logo_path}`);
             })
             .fail(errors => {
                 alert('Unable to display data');

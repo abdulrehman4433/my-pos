@@ -5,7 +5,7 @@
         <!-- Sidebar user panel -->
         <div class="user-panel">
             <div class="pull-left image">
-                <img src="{{ url(auth()->user()->foto ?? '') }}" class="img-circle img-profil" alt="User Image">
+                <img src="{{ url(auth()->user()->photo ?? '') }}" class="img-circle img-profil" alt="User Image">
             </div>
             <div class="pull-left info">
                 <p>{{ auth()->user()->name }}</p>
@@ -22,7 +22,7 @@
                 </a>
             </li>
 
-            @if (auth()->user()->level == 1)
+            @if (auth()->user()->access_level == 1)
             <li class="header">STOCK</li>
             <li>
                 <a href="{{ route('kategori.index') }}">

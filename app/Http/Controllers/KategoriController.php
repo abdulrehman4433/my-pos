@@ -26,7 +26,7 @@ class KategoriController extends Controller
         
         // Filter categories by user's branch
         $kategori = Kategori::where('branch_id', $userBranchId)
-            ->orderBy('id_kategori', 'desc')
+            ->orderBy('category_id', 'desc')
             ->get();
 
         return datatables()

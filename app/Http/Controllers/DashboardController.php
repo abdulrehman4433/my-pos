@@ -19,9 +19,9 @@ class DashboardController extends Controller
         $produk = Produk::count();
         $supplier = Supplier::count();
         $member = Member::count();
-        $penjualan = Penjualan::sum('diterima');
-        $pengeluaran = Pengeluaran::sum('nominal');
-        $pembelian = Pembelian::sum('bayar');
+        $penjualan = Penjualan::sum('received');
+        $pengeluaran = Pengeluaran::sum('amount');
+        $pembelian = Pembelian::sum('payment');
 
         $tanggal_awal = date('Y-m-01');
         $tanggal_akhir = date('Y-m-d');
@@ -32,9 +32,9 @@ class DashboardController extends Controller
         while (strtotime($tanggal_awal) <= strtotime($tanggal_akhir)) {
             $data_tanggal[] = (int) substr($tanggal_awal, 8, 2);
 
-            $total_penjualan = Penjualan::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('bayar');
-            $total_pembelian = Pembelian::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('bayar');
-            $total_pengeluaran = Pengeluaran::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('nominal');
+            $total_penjualan = Penjualan::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('payment');
+            $total_pembelian = Pembelian::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('payment');
+            $total_pengeluaran = Pengeluaran::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('amount');
 
             $pendapatan = $total_penjualan - $total_pembelian - $total_pengeluaran;
             $data_pendapatan[] += $pendapatan;
@@ -44,11 +44,10 @@ class DashboardController extends Controller
 
         $tanggal_awal = date('Y-m-01');
 
-        if (auth()->user()->level == 1) {
+        if (auth()->user()->access_level == 1) {
             return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan'));
         } else {
             return view('kasir.dashboard');
         }
     }
 }
-// visit "codeastro" for more projects!

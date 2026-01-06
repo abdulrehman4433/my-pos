@@ -3,7 +3,7 @@
     <a href="/" class="logo">
         <!-- mini logo for sidebar mini 50x50 pixels -->
         @php
-            $words = explode(' ', $setting->nama_perusahaan);
+            $words = explode(' ', $setting->company_name);
             $word  = '';
             foreach ($words as $w) {
                 $word .= $w[0];
@@ -11,7 +11,7 @@
         @endphp
         <span class="logo-mini">{{ $word }}</span>
         <!-- logo for regular state and mobile devices -->
-        <span class="logo-lg"><b>{{ $setting->nama_perusahaan }}</b></span>
+        <span class="logo-lg"><b>{{ $setting->company_name }}</b></span>
     </a>
     <!-- Header Navbar: style can be found in header.less -->
     <nav class="navbar navbar-static-top">
@@ -25,14 +25,14 @@
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <img src="{{ url(auth()->user()->foto ?? '') }}" class="user-image img-profil"
+                        <img src="{{ url(auth()->user()->photo ?? '') }}" class="user-image img-profil"
                             alt="User Image">
                         <span class="hidden-xs">{{ auth()->user()->name }}</span>
                     </a>
                     <ul class="dropdown-menu">
                         <!-- User image -->
                         <li class="user-header">
-                            <img src="{{ url(auth()->user()->foto ?? '') }}" class="img-circle img-profil"
+                            <img src="{{ url(auth()->user()->photo ?? '') }}" class="img-circle img-profil"
                                 alt="User Image">
 
                             <p>
