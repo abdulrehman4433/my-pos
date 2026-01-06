@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -14,13 +15,13 @@ class BuatSettingTable extends Migration
     public function up()
     {
         Schema::create('setting', function (Blueprint $table) {
-            $table->increments('id_setting');
-            $table->string('nama_perusahaan');
-            $table->text('alamat')->nullable();
-            $table->string('telepon');
-            $table->tinyInteger('tipe_nota');
-            $table->string('path_logo');
-            $table->string('path_kartu_member');
+            $table->increments('setting_id');
+            $table->string('company_name');
+            $table->text('address')->nullable();
+            $table->string('phone');
+            $table->tinyInteger('receipt_type');
+            $table->string('logo_path');
+            $table->string('member_card_path');
             $table->timestamps();
         });
     }
@@ -32,6 +33,6 @@ class BuatSettingTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('setting');
+        Schema::dropIfExists('settings');
     }
 }

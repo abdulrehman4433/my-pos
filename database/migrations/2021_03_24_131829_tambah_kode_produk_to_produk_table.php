@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,29 +7,19 @@ use Illuminate\Support\Facades\Schema;
 
 class TambahKodeProdukToProdukTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::table('produk', function (Blueprint $table) {
-            $table->string('kode_produk')
+        Schema::table('products', function (Blueprint $table) {
+            $table->string('product_code')
                   ->unique()
-                  ->after('id_kategori');
+                  ->after('category_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::table('produk', function (Blueprint $table) {
-            $table->dropColumn('kode_produk');
+        Schema::table('products', function (Blueprint $table) {
+            $table->dropColumn('product_code');
         });
     }
 }

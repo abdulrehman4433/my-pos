@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,29 +7,19 @@ use Illuminate\Support\Facades\Schema;
 
 class TambahDiskonToSettingTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::table('setting', function (Blueprint $table) {
-            $table->smallInteger('diskon')
+            $table->smallInteger('discount')
                   ->default(0)
-                  ->after('tipe_nota');
+                  ->after('receipt_type');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::table('setting', function (Blueprint $table) {
-            $table->dropColumn('diskon');
+        Schema::table('settings', function (Blueprint $table) {
+            $table->dropColumn('discount');
         });
     }
 }

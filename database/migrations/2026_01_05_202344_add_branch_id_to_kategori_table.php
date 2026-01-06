@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,16 +7,11 @@ use Illuminate\Support\Facades\Schema;
 
 class AddBranchIdToKategoriTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up(): void
     {
-        Schema::table('kategori', function (Blueprint $table) {
+        Schema::table('categories', function (Blueprint $table) {
             $table->foreignId('branch_id')
-                  ->after('id_kategori')
+                  ->after('category_id')
                   ->constrained('branches')
                   ->cascadeOnDelete();
         });
@@ -23,7 +19,7 @@ class AddBranchIdToKategoriTable extends Migration
 
     public function down(): void
     {
-        Schema::table('kategori', function (Blueprint $table) {
+        Schema::table('categories', function (Blueprint $table) {
             $table->dropForeign(['branch_id']);
             $table->dropColumn('branch_id');
         });

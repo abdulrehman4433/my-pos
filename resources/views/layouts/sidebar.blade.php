@@ -23,7 +23,7 @@
             </li>
 
             @if (auth()->user()->level == 1)
-            <li class="header">MASTER</li>
+            <li class="header">STOCK</li>
             <li>
                 <a href="{{ route('kategori.index') }}">
                     <i class="fa fa-cube"></i> <span>Category</span>
@@ -34,14 +34,20 @@
                     <i class="fa fa-cubes"></i> <span>Product</span>
                 </a>
             </li>
+            <li class="header">SERVICES</li>
             <li>
-                <a href="{{ route('member.index') }}">
-                    <i class="fa fa-id-card"></i> <span>Member</span>
+                <a href="{{ route('kategori.index') }}">
+                    <i class="fa fa-cube"></i> <span>Project</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('supplier.index') }}">
-                    <i class="fa fa-truck"></i> <span>Supplier</span>
+                <a href="{{ route('produk.index') }}">
+                    <i class="fa fa-cubes"></i> <span>Rental</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('produk.index') }}">
+                    <i class="fa fa-cubes"></i> <span>Maintinance</span>
                 </a>
             </li>
             <li class="header">TRANSACTION</li>
@@ -77,12 +83,23 @@
                     <i class="fa fa-file-pdf-o"></i> <span>Income</span>
                 </a>
             </li>
-            <li class="header">SYSTEM</li>
+            <li class="header">PEOPLE</li>
             <li>
                 <a href="{{ route('user.index') }}">
                     <i class="fa fa-users"></i> <span>User</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('member.index') }}">
+                    <i class="fa fa-id-card"></i> <span>Member</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('supplier.index') }}">
+                    <i class="fa fa-truck"></i> <span>Supplier</span>
+                </a>
+            </li>
+            <li class="header">SYSTEM</li>
             <li>
                 <a href="{{ route("setting.index") }}">
                     <i class="fa fa-cogs"></i> <span>Settings</span>

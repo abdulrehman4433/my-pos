@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,33 +7,23 @@ use Illuminate\Support\Facades\Schema;
 
 class BuatProdukTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('produk', function (Blueprint $table) {
-            $table->increments('id_produk');
-            $table->unsignedInteger('id_kategori');
-            $table->string('nama_produk')->unique();
-            $table->string('merk')->nullable();
-            $table->integer('harga_beli');
-            $table->tinyInteger('diskon')->default(0);
-            $table->integer('harga_jual');
-            $table->integer('stok');
+        Schema::create('products', function (Blueprint $table) {
+            $table->increments('product_id');
+            $table->unsignedInteger('category_id');
+            $table->string('product_name')->unique();
+            $table->string('brand')->nullable();
+            $table->integer('purchase_price');
+            $table->tinyInteger('discount')->default(0);
+            $table->integer('selling_price');
+            $table->integer('stock');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('produk');
+        Schema::dropIfExists('products');
     }
 }

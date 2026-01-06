@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,29 +7,19 @@ use Illuminate\Support\Facades\Schema;
 
 class BuatSupplierTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('supplier', function (Blueprint $table) {
-            $table->increments('id_supplier');
-            $table->string('nama');
-            $table->text('alamat')->nullable();
-            $table->string('telepon');
+        Schema::create('suppliers', function (Blueprint $table) {
+            $table->increments('supplier_id');
+            $table->string('name');
+            $table->text('address')->nullable();
+            $table->string('phone');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('supplier');
+        Schema::dropIfExists('suppliers');
     }
 }

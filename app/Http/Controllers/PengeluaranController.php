@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pengeluaran;
+use Illuminate\Support\Facades\Auth; // If using authentication
+use Illuminate\Support\Facades\DB;
 
 class PengeluaranController extends Controller
 {
@@ -14,7 +16,9 @@ class PengeluaranController extends Controller
 
     public function data()
     {
-        $pengeluaran = Pengeluaran::orderBy('id_pengeluaran', 'desc')->get();
+        $pengeluaran = Pengeluaran::with('branch') // Eager load branch relationship
+            ->orderBy('id_pengeluaran', 'desc')
+            ->get();
 
         return datatables()
             ->of($pengeluaran)
@@ -24,6 +28,9 @@ class PengeluaranController extends Controller
             })
             ->addColumn('nominal', function ($pengeluaran) {
                 return format_uang($pengeluaran->nominal);
+            })
+            ->addColumn('branch_name', function ($pengeluaran) {
+                return $pengeluaran->branch ? $pengeluaran->branch->name : '-'; // Adjust 'name' to your branch field
             })
             ->addColumn('aksi', function ($pengeluaran) {
                 return '
@@ -37,77 +44,116 @@ class PengeluaranController extends Controller
             ->make(true);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        $pengeluaran = Pengeluaran::create($request->all());
+        // Validate request data
+        $validated = $request->validate([
+            'deskripsi' => 'required|string|max:255',
+            'nominal' => 'required|integer|min:0',
+        ]);
 
-        return response()->json('Data saved successfully', 200);
+        $validated['branch_id'] = auth()->user()->branch_id;
+
+        try {
+            $pengeluaran = Pengeluaran::create($validated);
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense data saved successfully',
+                'data' => $pengeluaran
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save expense data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function show($id)
+    {
+        $pengeluaran = Pengeluaran::with('branch')->find($id);
+
+        if (!$pengeluaran) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Expense data not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $pengeluaran
+        ]);
+    }
+
+    public function update(Request $request, $id)
     {
         $pengeluaran = Pengeluaran::find($id);
 
-        return response()->json($pengeluaran);
+        if (!$pengeluaran) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Expense data not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'deskripsi' => 'required|string|max:255',
+            'nominal' => 'required|integer|min:0',
+            'branch_id' => 'required|integer|exists:branches,id',
+        ]);
+
+        try {
+            $pengeluaran->update($validated);
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense data updated successfully',
+                'data' => $pengeluaran
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update expense data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-    // visit "codeastro" for more projects!
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        $pengeluaran = Pengeluaran::find($id)->update($request->all());
-
-        return response()->json('Data saved successfully', 200);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-        $pengeluaran = Pengeluaran::find($id)->delete();
+        $pengeluaran = Pengeluaran::find($id);
 
-        return response(null, 204);
+        if (!$pengeluaran) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Expense data not found'
+            ], 404);
+        }
+
+        try {
+            $pengeluaran->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense data deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete expense data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get branches for dropdown/select (optional helper method)
+     */
+    public function getBranches()
+    {
+        // Assuming you have a Branch model
+        $branches = DB::table('branches')
+            ->select('id', 'name') // Adjust fields as needed
+            ->orderBy('name')
+            ->get();
+            
+        return response()->json($branches);
     }
 }

@@ -15,7 +15,7 @@ class AddBranchIdToSettingTable extends Migration
     {
         Schema::table('setting', function (Blueprint $table) {
             $table->foreignId('branch_id')
-                  ->after('id_setting')
+                  ->after('setting_id')
                   ->constrained('branches')
                   ->cascadeOnDelete();
         });

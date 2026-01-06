@@ -17,4 +17,19 @@ class Kategori extends Model
     {
         return $this->belongsTo(Branch::class);
     }
+    /**
+     * Relationship with Produk
+     */
+    public function produk()
+    {
+        return $this->hasMany(Produk::class, 'id_kategori', 'id_kategori');
+    }
+
+    /**
+     * Get active products count
+     */
+    public function getActiveProdukCountAttribute()
+    {
+        return $this->produk()->where('status', true)->count();
+    }
 }

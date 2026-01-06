@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,31 +7,21 @@ use Illuminate\Support\Facades\Schema;
 
 class BuatPembelianTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('pembelian', function (Blueprint $table) {
-            $table->increments('id_pembelian');
-            $table->integer('id_supplier');
-            $table->integer('total_item');
-            $table->integer('total_harga');
-            $table->tinyInteger('diskon')->default(0);
-            $table->integer('bayar')->default(0);
+        Schema::create('purchases', function (Blueprint $table) {
+            $table->increments('purchase_id');
+            $table->integer('supplier_id');
+            $table->integer('total_items');
+            $table->integer('total_price');
+            $table->tinyInteger('discount')->default(0);
+            $table->integer('payment')->default(0);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('pembelian');
+        Schema::dropIfExists('purchases');
     }
 }

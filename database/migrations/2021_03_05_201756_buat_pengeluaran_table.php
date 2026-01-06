@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,28 +7,18 @@ use Illuminate\Support\Facades\Schema;
 
 class BuatPengeluaranTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('pengeluaran', function (Blueprint $table) {
-            $table->increments('id_pengeluaran');
-            $table->text('deskripsi');
-            $table->integer('nominal');
+        Schema::create('expenses', function (Blueprint $table) {
+            $table->increments('expense_id');
+            $table->text('description');
+            $table->integer('amount');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('pengeluaran');
+        Schema::dropIfExists('expenses');
     }
 }

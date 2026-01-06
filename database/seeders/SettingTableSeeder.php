@@ -12,18 +12,19 @@ class SettingTableSeeder extends Seeder
      *
      * @return void
      */
+    
     public function run()
     {
         DB::table('setting')->insert([
-            'id_setting' => 1,
-            'branch_id' => 1,
-            'nama_perusahaan' => 'Toko Ku',
-            'alamat' => 'Jl. Kibandang Samaran Ds. Slangit',
-            'telepon' => '081234779987',
-            'tipe_nota' => 1,
-            'diskon' => 5,
-            'path_logo' => '/img/logo.png',
-            'path_kartu_member' => '/img/member.png',
+            'setting_id'       => 1,
+            'branch_id'        => 1,
+            'company_name'     => 'Toko Ku',
+            'address'          => 'Jl. Kibandang Samaran Ds. Slangit',
+            'phone'            => '081234779987',
+            'receipt_type'     => 1,
+            'discount'         => 5,
+            'logo_path'        => '/img/logo.png',
+            'member_card_path' => '/img/member.png',
         ]);
     }
 }
