@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Kategori;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class KategoriController extends Controller
 {
@@ -21,41 +22,41 @@ class KategoriController extends Controller
 
     public function data()
     {
-        // Get current user's branch
-        $userBranchId = Auth::user()->branch_id;
-        
-        // Filter categories by user's branch
-        $kategori = Kategori::where('branch_id', $userBranchId)
-            ->orderBy('category_id', 'desc')
+        $branchId = Auth::user()->branch_id;
+
+        $categories = Kategori::where('branch_id', $branchId)
+            ->orderByDesc('category_id')
             ->get();
 
         return datatables()
-            ->of($kategori)
+            ->of($categories)
             ->addIndexColumn()
-            ->addColumn('aksi', function ($kategori) {
-                $buttons = '
-                <div class="btn-group">
-                    <button onclick="editForm(`'. route('kategori.update', $kategori->id_kategori) .'`)" 
-                            class="btn btn-xs btn-primary btn-flat" 
-                            title="Edit">
-                        <i class="fa fa-pencil"></i>
-                    </button>
-                    <button onclick="deleteData(`'. route('kategori.destroy', $kategori->id_kategori) .'`)" 
-                            class="btn btn-xs btn-danger btn-flat" 
-                            title="Delete">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
+
+            ->addColumn('action', function ($category) {
+                return '
+                    <div class="btn-group">
+                        <button onclick="editForm(`'.route('kategori.update', $category->category_id).'`)"
+                            class="btn btn-xs btn-primary btn-flat" title="Edit">
+                            <i class="fa fa-pencil"></i>
+                        </button>
+
+                        <button onclick="deleteData(`'.route('kategori.destroy', $category->category_id).'`)"
+                            class="btn btn-xs btn-danger btn-flat" title="Delete">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
                 ';
-                
-                return $buttons;
             })
-            ->addColumn('branch_name', function ($kategori) {
-                return $kategori->branch ? $kategori->branch->name : 'N/A';
+
+            ->addColumn('branch_name', function ($category) {
+                return $category->branch ? $category->branch->name : 'N/A';
             })
-            ->rawColumns(['aksi'])
+
+            ->rawColumns(['action'])
             ->make(true);
     }
+
+
 
     /**
      * Show the form for creating a new resource.
@@ -76,11 +77,13 @@ class KategoriController extends Controller
     public function store(Request $request)
     {
         $validator = validator($request->all(), [
-            'nama_kategori' => 'required|string|max:255|unique:kategori,nama_kategori,NULL,id_kategori,branch_id,' . Auth::user()->branch_id,
-        ], [
-            'nama_kategori.required' => 'Nama kategori wajib diisi',
-            'nama_kategori.unique' => 'Kategori sudah ada di cabang ini',
-            'nama_kategori.max' => 'Nama kategori maksimal 255 karakter',
+            'nama_kategori' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'category_name')
+                    ->where('branch_id', Auth::user()->branch_id),
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -102,15 +105,9 @@ class KategoriController extends Controller
             }
 
             $kategori = Kategori::create([
-                'nama_kategori' => $request->nama_kategori,
+                'category_name' => $request->nama_kategori,
                 'branch_id' => $user->branch_id,
             ]);
-
-            // Log activity (optional - if you have activity logging)
-            // activity()
-            //     ->causedBy($user)
-            //     ->performedOn($kategori)
-            //     ->log('created kategori: ' . $kategori->nama_kategori);
 
             return response()->json([
                 'status' => true,
@@ -179,59 +176,59 @@ class KategoriController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $user = Auth::user();
+
         $validator = validator($request->all(), [
-            'nama_kategori' => 'required|string|max:255|unique:kategori,nama_kategori,' . $id . ',id_kategori,branch_id,' . Auth::user()->branch_id,
-        ], [
-            'nama_kategori.required' => 'Nama kategori wajib diisi',
-            'nama_kategori.unique' => 'Kategori sudah ada di cabang ini',
-            'nama_kategori.max' => 'Nama kategori maksimal 255 karakter',
+            'nama_kategori' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'category_name')
+                    ->ignore($id, 'category_id')
+                    ->where('branch_id', $user->branch_id),
+            ],
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'errors' => $validator->errors(),
-                'message' => 'Validasi gagal'
+                'status'  => false,
+                'errors'  => $validator->errors(),
+                'message' => 'Validation failed'
             ], 422);
         }
 
         try {
-            $kategori = Kategori::where('branch_id', Auth::user()->branch_id)
+            $category = Kategori::where('branch_id', $user->branch_id)
                 ->findOrFail($id);
 
-            $oldName = $kategori->nama_kategori;
-            $kategori->nama_kategori = $request->nama_kategori;
-            $kategori->save();
-
-            // Log activity (optional)
-            // activity()
-            //     ->causedBy(Auth::user())
-            //     ->performedOn($kategori)
-            //     ->log('updated kategori from "' . $oldName . '" to "' . $kategori->nama_kategori . '"');
+            $category->update([
+                'category_name' => $request->nama_kategori,
+            ]);
 
             return response()->json([
-                'status' => true,
-                'message' => 'Kategori berhasil diperbarui',
-                'data' => $kategori
+                'status'  => true,
+                'message' => 'Category updated successfully',
+                'data'    => $category
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kategori tidak ditemukan'
+                'status'  => false,
+                'message' => 'Category not found'
             ], 404);
-            
+
         } catch (\Exception $e) {
-            \Log::error('Error updating kategori: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'kategori_id' => $id,
-                'request' => $request->all()
+            \Log::error('Error updating category', [
+                'user_id'     => $user->id,
+                'category_id' => $id,
+                'request'     => $request->all(),
+                'error'       => $e->getMessage(),
             ]);
 
             return response()->json([
-                'status' => false,
-                'message' => 'Terjadi kesalahan sistem',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'status'  => false,
+                'message' => 'System error occurred',
+                'error'   => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -248,21 +245,8 @@ class KategoriController extends Controller
             $kategori = Kategori::where('branch_id', Auth::user()->branch_id)
                 ->findOrFail($id);
 
-            // Check if kategori has related products (optional)
-            // if ($kategori->produk()->exists()) {
-            //     return response()->json([
-            //         'status' => false,
-            //         'message' => 'Tidak dapat menghapus kategori karena memiliki produk terkait'
-            //     ], 422);
-            // }
-
-            $kategoriName = $kategori->nama_kategori;
+            $kategoriName = $kategori->category_name;
             $kategori->delete();
-
-            // Log activity (optional)
-            // activity()
-            //     ->causedBy(Auth::user())
-            //     ->log('deleted kategori: ' . $kategoriName);
 
             return response()->json([
                 'status' => true,
@@ -295,8 +279,8 @@ class KategoriController extends Controller
     public function getCategoriesForSelect()
     {
         $categories = Kategori::where('branch_id', Auth::user()->branch_id)
-            ->orderBy('nama_kategori', 'asc')
-            ->get(['id_kategori as id', 'nama_kategori as text'])
+            ->orderBy('category_name', 'asc')
+            ->get(['category_id as id', 'category_name as text'])
             ->toArray();
 
         return response()->json([
@@ -313,12 +297,12 @@ class KategoriController extends Controller
         $query = Kategori::where('branch_id', Auth::user()->branch_id);
 
         if ($request->has('q') && !empty($request->q)) {
-            $query->where('nama_kategori', 'like', '%' . $request->q . '%');
+            $query->where('category_name', 'like', '%' . $request->q . '%');
         }
 
-        $categories = $query->orderBy('nama_kategori', 'asc')
+        $categories = $query->orderBy('category_name', 'asc')
             ->limit(10)
-            ->get(['id_kategori as id', 'nama_kategori as text']);
+            ->get(['category_id as id', 'category_name as text']);
 
         return response()->json([
             'status' => true,

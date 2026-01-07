@@ -48,8 +48,8 @@
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'nama_kategori'},
-                {data: 'aksi', searchable: false, sortable: false},
+                {data: 'category_name'},
+                {data: 'action', searchable: false, sortable: false},
             ]
         });
 
@@ -89,7 +89,7 @@
 
         $.get(url)
             .done((response) => {
-                $('#modal-form [name=nama_kategori]').val(response.nama_kategori);
+                $('#modal-form [name=nama_kategori]').val(response.data.category_name);
             })
             .fail((errors) => {
                 alert('Unable to display data');

@@ -19,12 +19,6 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        // Validate the token
-        $token = $request->input('_token');
-        if (!$this->validateToken($token)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
         // Get the first setting record
         $setting = Setting::first();
         
@@ -83,13 +77,5 @@ class SettingController extends Controller
         $setting->save();
 
         return response()->json(['message' => 'Data saved successfully'], 200);
-    }
-
-    // Helper function to validate token
-    private function validateToken($token)
-    {
-        // Implement your token validation logic here
-        // For example, check against a stored token or use Laravel's built-in CSRF
-        return $token === 'XQb6VBgafqS6D4ABMBAY3jKT66bkwixidHuOGLIC';
     }
 }

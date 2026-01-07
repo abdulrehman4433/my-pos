@@ -147,6 +147,8 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'nama_kategori' => 'The category name has already been taken.',
+    ],
 
 ];
