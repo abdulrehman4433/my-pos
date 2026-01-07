@@ -15,7 +15,10 @@ class UserController extends Controller
 
     public function data()
     {
-        $user = User::isNotAdmin()->orderBy('id', 'desc')->get();
+        $user = User::isNotAdmin()
+            ->select(['id', 'name', 'email', 'photo', 'access_level', 'created_at', 'branch_id']) // Select only needed columns
+            ->orderBy('id', 'desc')
+            ->get();
 
         return datatables()
             ->of($user)
@@ -54,8 +57,9 @@ class UserController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = bcrypt($request->password);
-        $user->level = 2;
-        $user->foto = '/img/user.png';
+        $user->access_level = 2;  // Changed from 'level' to 'access_level'
+        $user->photo = '/img/user.png';  // Make sure this matches your column name too
+        $user->branch_id = 1;
         $user->save();
 
         return response()->json('Data saved successfully', 200);
@@ -140,12 +144,12 @@ class UserController extends Controller
             }
         }
 
-        if ($request->hasFile('foto')) {
-            $file = $request->file('foto');
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
             $nama = 'logo-' . date('YmdHis') . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('/img'), $nama);
 
-            $user->foto = "/img/$nama";
+            $user->photo = "/img/$nama";
         }
 
         $user->update();

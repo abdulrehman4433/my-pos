@@ -65,15 +65,15 @@
             columns: [
                 {data: 'select_all', searchable: false, sortable: false},
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
-                {data: 'nama_produk'},
-                {data: 'nama_kategori'},
-                {data: 'merk'},
-                {data: 'harga_beli'},
-                {data: 'harga_jual'},
-                {data: 'diskon'},
-                {data: 'stok'},
-                {data: 'aksi', searchable: false, sortable: false},
+                {data: 'product_code'},           // Changed from 'kode_produk'
+                {data: 'product_name'},           // Changed from 'nama_produk'
+                {data: 'category_name'},          // Changed from 'nama_kategori'
+                {data: 'brand'},                  // Changed from 'merk'
+                {data: 'purchase_price'},         // Changed from 'harga_beli'
+                {data: 'selling_price'},          // Changed from 'harga_jual'
+                {data: 'discount'},               // Changed from 'diskon'
+                {data: 'stock'},                  // Changed from 'stok'
+                {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi'
             ]
         });
 
@@ -107,29 +107,37 @@
     }
 
     function editForm(url) {
-        $('#modal-form').modal('show');
-        $('#modal-form .modal-title').text('Edit Product');
+    $('#modal-form').modal('show');
+    $('#modal-form .modal-title').text('Edit Product');
 
-        $('#modal-form form')[0].reset();
-        $('#modal-form form').attr('action', url);
-        $('#modal-form [name=_method]').val('put');
-        $('#modal-form [name=nama_produk]').focus();
+    $('#modal-form form')[0].reset();
+    $('#modal-form form').attr('action', url);
+    $('#modal-form [name=_method]').val('put');
+    $('#modal-form [name=nama_produk]').focus();
 
-        $.get(url)
-            .done((response) => {
-                $('#modal-form [name=nama_produk]').val(response.nama_produk);
-                $('#modal-form [name=id_kategori]').val(response.id_kategori);
-                $('#modal-form [name=merk]').val(response.merk);
-                $('#modal-form [name=harga_beli]').val(response.harga_beli);
-                $('#modal-form [name=harga_jual]').val(response.harga_jual);
-                $('#modal-form [name=diskon]').val(response.diskon);
-                $('#modal-form [name=stok]').val(response.stok);
-            })
-            .fail((errors) => {
-                alert('Unable to display data');
-                return;
-            });
-    }
+    $.get(url)
+        .done((response) => {
+            if (response.status && response.data) {
+                const product = response.data;
+                
+                // Set form values with the correct property names from response
+                $('#modal-form [name=nama_produk]').val(product.product_name);
+                $('#modal-form [name=id_kategori]').val(product.category_id);
+                $('#modal-form [name=merk]').val(product.brand);
+                $('#modal-form [name=harga_beli]').val(product.purchase_price);
+                $('#modal-form [name=harga_jual]').val(product.selling_price);
+                $('#modal-form [name=diskon]').val(product.discount);
+                $('#modal-form [name=stok]').val(product.stock);
+            } else {
+                alert('Invalid response format');
+            }
+        })
+        .fail((errors) => {
+            console.error('Error fetching product data:', errors);
+            alert('Unable to display data. Please try again.');
+            return;
+        });
+}
 
     function deleteData(url) {
         if (confirm('Are you sure you want to delete selected data?')) {

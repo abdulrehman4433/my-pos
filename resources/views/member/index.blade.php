@@ -58,11 +58,12 @@ List of Members
             columns: [
                 {data: 'select_all', searchable: false, sortable: false},
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_member'},
-                {data: 'nama'},
-                {data: 'telepon'},
-                {data: 'alamat'},
-                {data: 'aksi', searchable: false, sortable: false},
+                {data: 'member_code'},  // Changed from 'kode_member'
+                {data: 'name'},         // Changed from 'nama'
+                {data: 'address'},
+                {data: 'phone'},
+                {data: 'created_at'},
+                {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi'
             ]
         });
 

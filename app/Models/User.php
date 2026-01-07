@@ -62,12 +62,30 @@ class User extends Authenticatable
 
     public function scopeIsNotAdmin($query)
     {
-        return $query->where('level', '!=', 1);
+        return $query->where('access_level', '!=', 1);
+    }
+
+    // In App\Models\User.php
+    public function getProfilePhotoPathAttribute()
+    {
+        // Return the value from the database column
+        return $this->attributes['profile_photo_path'] ?? null;
     }
 
     public function branch()
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    // In User model
+    public function setLevelAttribute($value)
+    {
+        $this->attributes['access_level'] = $value;
+    }
+
+    public function getLevelAttribute()
+    {
+        return $this->attributes['access_level'] ?? null;
     }
 
 }

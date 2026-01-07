@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Member;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use PDF;
 
 class MemberController extends Controller
@@ -21,28 +24,48 @@ class MemberController extends Controller
 
     public function data()
     {
-        $member = Member::orderBy('kode_member')->get();
+        $member = Member::where('branch_id', Auth::user()->branch_id) // Filter by branch
+            ->orderBy('member_code')
+            ->get();
 
         return datatables()
             ->of($member)
             ->addIndexColumn()
-            ->addColumn('select_all', function ($produk) {
+            ->addColumn('select_all', function ($member) {
                 return '
-                    <input type="checkbox" name="id_member[]" value="'. $produk->id_member .'">
+                    <input type="checkbox" name="member_id[]" value="'. $member->member_id .'" class="select-checkbox">
                 ';
             })
-            ->addColumn('kode_member', function ($member) {
-                return '<span class="label label-success">'. $member->kode_member .'<span>';
+            ->addColumn('member_code', function ($member) {
+                return '<span class="badge bg-success">'. e($member->member_code) .'</span>';
             })
-            ->addColumn('aksi', function ($member) {
+            ->addColumn('name', function ($member) {
+                return e($member->name);
+            })
+            ->addColumn('address', function ($member) {
+                return $member->address ? e($member->address) : '<span class="text-muted">-</span>';
+            })
+            ->addColumn('phone', function ($member) {
+                return e($member->phone);
+            })
+            ->addColumn('created_at', function ($member) {
+                return $member->created_at ? $member->created_at->format('d/m/Y') : '-';
+            })
+            ->addColumn('action', function ($member) {
                 return '
-                <div class="btn-group">
-                    <button type="button" onclick="editForm(`'. route('member.update', $member->id_member) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-pencil"></i></button>
-                    <button type="button" onclick="deleteData(`'. route('member.destroy', $member->id_member) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" onclick="editForm(`'. route('member.update', $member->member_id) .'`)" 
+                            class="btn btn-primary btn-flat" title="Edit">
+                        <i class="fa fa-edit"></i>
+                    </button>
+                    <button type="button" onclick="deleteData(`'. route('member.destroy', $member->member_id) .'`)" 
+                            class="btn btn-danger btn-flat" title="Delete">
+                        <i class="fa fa-trash"></i>
+                    </button>
                 </div>
                 ';
             })
-            ->rawColumns(['aksi', 'select_all', 'kode_member'])
+            ->rawColumns(['action', 'select_all', 'member_code', 'address'])
             ->make(true);
     }
 
@@ -62,20 +85,80 @@ class MemberController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
-    {
-        $member = Member::latest()->first() ?? new Member();
-        $kode_member = (int) $member->kode_member +1;
+   public function store(Request $request)
+{
+    // Validate with Indonesian field names (from payload)
+    $validator = Validator::make($request->all(), [
+        'nama' => 'required|string|max:255',      // Changed from 'name'
+        'telepon' => 'required|string|max:20',    // Changed from 'phone'
+        'alamat' => 'nullable|string',            // Changed from 'address'
+    ], [
+        'nama.required' => 'Member name is required',
+        'telepon.required' => 'Phone number is required',
+    ]);
 
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'errors' => $validator->errors(),
+            'message' => 'Validation failed'
+        ], 422);
+    }
+
+    DB::beginTransaction();
+    try {
+        // Get the latest member for code generation
+        $lastMember = Member::where('branch_id', Auth::user()->branch_id)
+            ->orderBy('member_id', 'desc')
+            ->first();
+        
+        // Generate member code
+        $memberCode = 'M' . date('Ymd') . '-';
+        
+        if ($lastMember && $lastMember->member_code) {
+            // Extract number from existing code
+            if (preg_match('/-(\d+)$/', $lastMember->member_code, $matches)) {
+                $number = (int)$matches[1] + 1;
+                $memberCode .= str_pad($number, 4, '0', STR_PAD_LEFT);
+            } else {
+                $memberCode .= '0001';
+            }
+        } else {
+            $memberCode .= '0001';
+        }
+
+        // Map Indonesian payload fields to English database columns
         $member = new Member();
-        $member->kode_member = tambah_nol_didepan($kode_member, 5);
-        $member->nama = $request->nama;
-        $member->telepon = $request->telepon;
-        $member->alamat = $request->alamat;
+        $member->member_code = $memberCode;
+        $member->name = $request->nama;           // Map: nama -> name
+        $member->phone = $request->telepon;       // Map: telepon -> phone
+        $member->address = $request->alamat;      // Map: alamat -> address
+        $member->branch_id = Auth::user()->branch_id;
         $member->save();
 
-        return response()->json('Data saved successfully', 200);
+        DB::commit();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Member saved successfully',
+            'data' => $member
+        ], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        \Log::error('Error saving member: ' . $e->getMessage(), [
+            'user_id' => Auth::id(),
+            'request' => $request->all()
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'System error occurred',
+            'error' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
     }
+}
 
     /**
      * Display the specified resource.
