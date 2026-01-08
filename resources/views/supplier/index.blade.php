@@ -49,9 +49,9 @@
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'nama'},
-                {data: 'telepon'},
-                {data: 'alamat'},
+                {data: 'name'},
+                {data: 'phone'},
+                {data: 'address'},
                 {data: 'aksi', searchable: false, sortable: false},
             ]
         });
@@ -92,9 +92,9 @@
 
         $.get(url)
             .done((response) => {
-                $('#modal-form [name=nama]').val(response.nama);
-                $('#modal-form [name=telepon]').val(response.telepon);
-                $('#modal-form [name=alamat]').val(response.alamat);
+                $('#modal-form [name=nama]').val(response.name);
+                $('#modal-form [name=telepon]').val(response.phone);
+                $('#modal-form [name=alamat]').val(response.address);
             })
             .fail((errors) => {
                 alert('Unable to display data');

@@ -50,8 +50,8 @@
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
                 {data: 'created_at'},
-                {data: 'deskripsi'},
-                {data: 'nominal'},
+                {data: 'description'},
+                {data: 'amount'},
                 {data: 'aksi', searchable: false, sortable: false},
             ]
         });
@@ -92,8 +92,8 @@
 
         $.get(url)
             .done((response) => {
-                $('#modal-form [name=deskripsi]').val(response.deskripsi);
-                $('#modal-form [name=nominal]').val(response.nominal);
+                $('#modal-form [name=deskripsi]').val(response.data.description);
+                $('#modal-form [name=nominal]').val(response.data.amount);
             })
             .fail((errors) => {
                 alert('Unable to display data');
