@@ -12,102 +12,107 @@ class PembelianDetailController extends Controller
 {
     public function index()
     {
-        $id_pembelian = session('id_pembelian');
-        $produk = Produk::orderBy('nama_produk')->get();
-        $supplier = Supplier::find(session('id_supplier'));
-        $diskon = Pembelian::find($id_pembelian)->diskon ?? 0;
+        $purchaseId = session('purchase_id');
+        $products   = Produk::orderBy('product_name')->get();
+        $supplier   = Supplier::find(session('supplier_id'));
+        $discount   = Pembelian::find($purchaseId)->discount ?? 0;
 
         if (! $supplier) {
             abort(404);
         }
+        // dd( $purchaseId, $products, $supplier, $discount);
 
-        return view('pembelian_detail.index', compact('id_pembelian', 'produk', 'supplier', 'diskon'));
+        return view('pembelian_detail.index', compact('purchaseId', 'products', 'supplier', 'discount'));
     }
 
-    public function data($id)
+    public function data($purchaseId)
     {
-        $detail = PembelianDetail::with('produk')
-            ->where('id_pembelian', $id)
+        $details = PembelianDetail::with('product')
+            ->where('purchase_id', $purchaseId)
             ->get();
-        $data = array();
-        $total = 0;
-        $total_item = 0;
 
-        foreach ($detail as $item) {
-            $row = array();
-            $row['kode_produk'] = '<span class="label label-success">'. $item->produk['kode_produk'] .'</span';
-            $row['nama_produk'] = $item->produk['nama_produk'];
-            $row['harga_beli']  = '$ '. format_uang($item->harga_beli);
-            $row['jumlah']      = '<input type="number" class="form-control input-sm quantity" data-id="'. $item->id_pembelian_detail .'" value="'. $item->jumlah .'">';
-            $row['subtotal']    = '$ '. format_uang($item->subtotal);
-            $row['aksi']        = '<div class="btn-group">
-                                    <button onclick="deleteData(`'. route('pembelian_detail.destroy', $item->id_pembelian_detail) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                                </div>';
+        $data = [];
+        $total = 0;
+        $totalQuantity = 0;
+
+        foreach ($details as $item) {
+            $row = [];
+            $row['product_code'] = '<span class="label label-success">' . $item->product->product_code . '</span>';
+            $row['product_name'] = $item->product->product_name;
+            $row['purchase_price'] = '$ ' . format_uang($item->purchase_price);
+            $row['quantity'] = '<input type="number" class="form-control input-sm quantity" data-id="' . $item->purchase_detail_id . '" value="' . $item->quantity . '">';
+            $row['subtotal'] = '$ ' . format_uang($item->subtotal);
+            $row['action'] = '<div class="btn-group">
+                                <button onclick="deleteData(`' . route('pembelian_detail.destroy', $item->purchase_detail_id) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+                               </div>';
+
             $data[] = $row;
 
-            $total += $item->harga_beli * $item->jumlah;
-            $total_item += $item->jumlah;
+            $total += $item->purchase_price * $item->quantity;
+            $totalQuantity += $item->quantity;
         }
+
+        // Add hidden row for total calculation
         $data[] = [
-            'kode_produk' => '
-                <div class="total hide">'. $total .'</div>
-                <div class="total_item hide">'. $total_item .'</div>',
-            'nama_produk' => '',
-            'harga_beli'  => '',
-            'jumlah'      => '',
-            'subtotal'    => '',
-            'aksi'        => '',
+            'product_code' => '<div class="total hide">' . $total . '</div><div class="total_quantity hide">' . $totalQuantity . '</div>',
+            'product_name' => '',
+            'purchase_price' => '',
+            'quantity' => '',
+            'subtotal' => '',
+            'action' => '',
         ];
 
         return datatables()
             ->of($data)
             ->addIndexColumn()
-            ->rawColumns(['aksi', 'kode_produk', 'jumlah'])
+            ->rawColumns(['action', 'product_code', 'quantity'])
             ->make(true);
     }
 
     public function store(Request $request)
     {
-        $produk = Produk::where('id_produk', $request->id_produk)->first();
-        if (! $produk) {
+        $product = Produk::find($request->product_id);
+
+        if (! $product) {
             return response()->json('Data failed to save', 400);
         }
 
-        $detail = new PembelianDetail();
-        $detail->id_pembelian = $request->id_pembelian;
-        $detail->id_produk = $produk->id_produk;
-        $detail->harga_beli = $produk->harga_beli;
-        $detail->jumlah = 1;
-        $detail->subtotal = $produk->harga_beli;
-        $detail->save();
+        $detail = PembelianDetail::create([
+            'purchase_id'    => $request->purchase_id,
+            'product_id'     => $product->product_id,
+            'purchase_price' => $product->purchase_price,
+            'quantity'       => 1,
+            'subtotal'       => $product->purchase_price,
+        ]);
 
         return response()->json('Data saved successfully', 200);
     }
-    // visit "codeastro" for more projects!
+
     public function update(Request $request, $id)
     {
-        $detail = PembelianDetail::find($id);
-        $detail->jumlah = $request->jumlah;
-        $detail->subtotal = $detail->harga_beli * $request->jumlah;
-        $detail->update();
+        $detail = PembelianDetail::findOrFail($id);
+        $detail->quantity = $request->quantity;
+        $detail->subtotal = $detail->purchase_price * $request->quantity;
+        $detail->save();
     }
 
     public function destroy($id)
     {
-        $detail = PembelianDetail::find($id);
+        $detail = PembelianDetail::findOrFail($id);
         $detail->delete();
 
         return response(null, 204);
     }
 
-    public function loadForm($diskon, $total)
+    public function loadForm($discount, $total)
     {
-        $bayar = $total - ($diskon / 100 * $total);
-        $data  = [
-            'totalrp' => format_uang($total),
-            'bayar' => $bayar,
-            'bayarrp' => format_uang($bayar),
-            'terbilang' => ucwords(terbilang($bayar). ' Dollar')
+        $payable = $total - ($discount / 100 * $total);
+
+        $data = [
+            'totalrp'   => format_uang($total),
+            'bayar'     => $payable,
+            'bayarrp'   => format_uang($payable),
+            'terbilang' => ucwords(terbilang($payable) . ' Dollar')
         ];
 
         return response()->json($data);

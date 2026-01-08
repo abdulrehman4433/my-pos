@@ -23,4 +23,9 @@ class Pembelian extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function details()
+    {
+        return $this->hasMany(PembelianDetail::class, 'purchase_id', 'purchase_id');
+    }
+
 }

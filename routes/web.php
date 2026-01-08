@@ -61,8 +61,7 @@ Route::group(['middleware' => 'auth'], function () {
 
         Route::get('/pembelian_detail/{id}/data', [PembelianDetailController::class, 'data'])->name('pembelian_detail.data');
         Route::get('/pembelian_detail/loadform/{diskon}/{total}', [PembelianDetailController::class, 'loadForm'])->name('pembelian_detail.load_form');
-        Route::resource('/pembelian_detail', PembelianDetailController::class)
-            ->except('create', 'show', 'edit');
+        Route::resource('/pembelian_detail', PembelianDetailController::class)->except('create', 'show', 'edit');
 
         Route::get('/penjualan/data', [PenjualanController::class, 'data'])->name('penjualan.data');
         Route::get('/penjualan', [PenjualanController::class, 'index'])->name('penjualan.index');

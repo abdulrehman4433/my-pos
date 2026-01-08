@@ -7,14 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class PembelianDetail extends Model
 {
-    use HasFactory;
-
     protected $table = 'purchase_details';
     protected $primaryKey = 'purchase_detail_id';
-    protected $guarded = [];
 
-    public function produk()
+    protected $fillable = [
+        'purchase_id',
+        'product_id',
+        'purchase_price',
+        'quantity',
+        'subtotal',
+    ];
+
+    public function product()
     {
-        return $this->hasOne(Produk::class, 'product_id', 'product_id');
+        return $this->belongsTo(Produk::class, 'product_id', 'product_id');
     }
+    
 }

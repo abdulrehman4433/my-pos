@@ -7,67 +7,99 @@ use App\Models\Pembelian;
 use App\Models\PembelianDetail;
 use App\Models\Produk;
 use App\Models\Supplier;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class PembelianController extends Controller
 {
     public function index()
     {
-        $supplier = Supplier::orderBy('nama')->get();
+        $supplier = Supplier::orderBy('name')->get();
 
         return view('pembelian.index', compact('supplier'));
     }
-    // visit "codeastro" for more projects!
+
     public function data()
     {
-        $pembelian = Pembelian::orderBy('id_pembelian', 'desc')->get();
+        $pembelian = Pembelian::orderBy('purchase_id', 'desc')->get();
 
         return datatables()
             ->of($pembelian)
             ->addIndexColumn()
-            ->addColumn('total_item', function ($pembelian) {
-                return format_uang($pembelian->total_item);
+
+            ->addColumn('total_items', function ($pembelian) {
+                return format_uang($pembelian->total_items);
             })
-            ->addColumn('total_harga', function ($pembelian) {
-                return '$ '. format_uang($pembelian->total_harga);
+
+            ->addColumn('total_price', function ($pembelian) {
+                return '$ ' . format_uang($pembelian->total_price);
             })
-            ->addColumn('bayar', function ($pembelian) {
-                return '$ '. format_uang($pembelian->bayar);
+
+            ->addColumn('payment', function ($pembelian) {
+                return '$ ' . format_uang($pembelian->payment);
             })
-            ->addColumn('tanggal', function ($pembelian) {
+
+            ->addColumn('date', function ($pembelian) {
                 return tanggal_indonesia($pembelian->created_at, false);
             })
+
             ->addColumn('supplier', function ($pembelian) {
-                return $pembelian->supplier->nama;
+                return $pembelian->supplier->name;
             })
-            ->editColumn('diskon', function ($pembelian) {
-                return $pembelian->diskon . '%';
+
+            ->editColumn('discount', function ($pembelian) {
+                return $pembelian->discount . '%';
             })
-            ->addColumn('aksi', function ($pembelian) {
+
+            ->addColumn('action', function ($pembelian) {
                 return '
-                <div class="btn-group">
-                    <button onclick="showDetail(`'. route('pembelian.show', $pembelian->id_pembelian) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-eye"></i></button>
-                    <button onclick="deleteData(`'. route('pembelian.destroy', $pembelian->id_pembelian) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                </div>
+                    <div class="btn-group">
+                        <button onclick="showDetail(`'. route('pembelian.show', $pembelian->purchase_id) .'`)"
+                            class="btn btn-xs btn-primary btn-flat">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                        <button onclick="deleteData(`'. route('pembelian.destroy', $pembelian->purchase_id) .'`)"
+                            class="btn btn-xs btn-danger btn-flat">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
                 ';
             })
-            ->rawColumns(['aksi'])
+
+            ->rawColumns(['action'])
             ->make(true);
     }
 
-    public function create($id)
+
+
+    public function create($supplierId)
     {
-        $pembelian = new Pembelian();
-        $pembelian->id_supplier = $id;
-        $pembelian->total_item  = 0;
-        $pembelian->total_harga = 0;
-        $pembelian->diskon      = 0;
-        $pembelian->bayar       = 0;
-        $pembelian->save();
+        return DB::transaction(function () use ($supplierId) {
 
-        session(['id_pembelian' => $pembelian->id_pembelian]);
-        session(['id_supplier' => $pembelian->id_supplier]);
+            // Ensure supplier exists
+            $supplier = Supplier::findOrFail($supplierId);
 
-        return redirect()->route('pembelian_detail.index');
+            // Prevent duplicate active purchase
+            if (session()->has('purchase_id')) {
+                return redirect()->route('pembelian_detail.index');
+            }
+
+            $pembelian = Pembelian::create([
+                'supplier_id' => $supplier->supplier_id,
+                'total_items' => 0,
+                'total_price' => 0,
+                'discount'    => 0,
+                'payment'     => 0,
+                'branch_id'   => auth()->user()->branch_id ?? null,
+            ]);
+
+            session([
+                'purchase_id' => $pembelian->purchase_id,
+                'supplier_id' => $supplier->supplier_id,
+            ]);
+
+            return redirect()->route('pembelian_detail.index');
+        });
     }
 
     public function store(Request $request)
@@ -89,47 +121,77 @@ class PembelianController extends Controller
         return redirect()->route('pembelian.index');
     }
 
-    public function show($id)
+    public function show($purchaseId)
     {
-        $detail = PembelianDetail::with('produk')->where('id_pembelian', $id)->get();
+        $details = PembelianDetail::with('product')
+            ->where('purchase_id', $purchaseId)
+            ->get();
 
         return datatables()
-            ->of($detail)
+            ->of($details)
             ->addIndexColumn()
-            ->addColumn('kode_produk', function ($detail) {
-                return '<span class="label label-success">'. $detail->produk->kode_produk .'</span>';
+
+            ->addColumn('product_code', function ($detail) {
+                return '<span class="label label-success">'
+                    . e($detail->product->product_code) .
+                    '</span>';
             })
-            ->addColumn('nama_produk', function ($detail) {
-                return $detail->produk->nama_produk;
+
+            ->addColumn('product_name', function ($detail) {
+                return e($detail->product->product_name);
             })
-            ->addColumn('harga_beli', function ($detail) {
-                return '$ '. format_uang($detail->harga_beli);
+
+            ->addColumn('purchase_price', function ($detail) {
+                return '$ ' . format_uang($detail->purchase_price);
             })
-            ->addColumn('jumlah', function ($detail) {
-                return format_uang($detail->jumlah);
+
+            ->addColumn('quantity', function ($detail) {
+                return format_uang($detail->quantity);
             })
+
             ->addColumn('subtotal', function ($detail) {
-                return '$ '. format_uang($detail->subtotal);
+                return '$ ' . format_uang($detail->subtotal);
             })
-            ->rawColumns(['kode_produk'])
+
+            ->rawColumns(['product_code'])
             ->make(true);
     }
 
+
+
     public function destroy($id)
-    {
-        $pembelian = Pembelian::find($id);
-        $detail    = PembelianDetail::where('id_pembelian', $pembelian->id_pembelian)->get();
-        foreach ($detail as $item) {
-            $produk = Produk::find($item->id_produk);
-            if ($produk) {
-                $produk->stok -= $item->jumlah;
-                $produk->update();
+{
+    // Find the purchase
+    $pembelian = Pembelian::findOrFail($id);
+
+    // Get all purchase details related to this purchase
+    $details = PembelianDetail::where('purchase_id', $pembelian->purchase_id)->get();
+
+    foreach ($details as $item) {
+        // Find the related product
+        $produk = Produk::find($item->product_id);
+
+        if ($produk) {
+            // Reduce stock
+            $produk->stock -= $item->quantity;
+
+            // Prevent negative stock
+            if ($produk->stock < 0) {
+                $produk->stock = 0;
             }
-            $item->delete();
+
+            $produk->save();
         }
 
-        $pembelian->delete();
-
-        return response(null, 204);
+        // Delete the purchase detail
+        $item->delete();
     }
+
+    // Delete the purchase
+    $pembelian->delete();
+
+    return response()->json(['message' => 'Purchase deleted successfully.'], 200);
+}
+
+
 }

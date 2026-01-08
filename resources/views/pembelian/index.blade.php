@@ -28,7 +28,7 @@
                         <th>Quantity</th>
                         <th>Total Price</th>
                         <th>Discount</th>
-                        <th>Total Pay</th>
+                        <th>Payment</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
                     </thead>
                 </table>
@@ -36,7 +36,7 @@
         </div>
     </div>
 </div>
-<!-- visit "codeastro" for more projects! -->
+
 @includeIf('pembelian.supplier')
 @includeIf('pembelian.detail')
 @endsection
@@ -56,13 +56,13 @@
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'tanggal'},
-                {data: 'supplier'},
-                {data: 'total_item'},
-                {data: 'total_harga'},
-                {data: 'diskon'},
-                {data: 'bayar'},
-                {data: 'aksi', searchable: false, sortable: false},
+                {data: 'date'},           // Changed from 'tanggal' to 'date'
+                {data: 'supplier'},       // This matches
+                {data: 'total_items'},    // Changed from 'total_item' to 'total_items'
+                {data: 'total_price'},    // Changed from 'total_harga' to 'total_price'
+                {data: 'discount'},       // Changed from 'diskon' to 'discount'
+                {data: 'payment'},        // Changed from 'bayar' to 'payment'
+                {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi' to 'action'
             ]
         });
 

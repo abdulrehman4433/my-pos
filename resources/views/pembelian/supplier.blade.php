@@ -19,11 +19,11 @@
                         @foreach ($supplier as $key => $item)
                             <tr>
                                 <td width="5%">{{ $key+1 }}</td>
-                                <td>{{ $item->nama }}</td>
-                                <td>{{ $item->telepon }}</td>
-                                <td>{{ $item->alamat }}</td>
+                                <td>{{ $item->name }}</td>
+                                <td>{{ $item->phone }}</td>
+                                <td>{{ $item->address }}</td>
                                 <td>
-                                    <a href="{{ route('pembelian.create', $item->id_supplier) }}" class="btn btn-primary btn-xs btn-flat">
+                                    <a href="{{ route('pembelian.create', $item->supplier_id) }}" class="btn btn-primary btn-xs btn-flat">
                                         <i class="fa fa-check-circle"></i>
                                         Select
                                     </a>

@@ -64,7 +64,7 @@ Purchase
                         <label for="kode_produk" class="col-lg-2">Product Code</label>
                         <div class="col-lg-5">
                             <div class="input-group">
-                                <input type="hidden" name="id_pembelian" id="id_pembelian" value="{{ $id_pembelian }}">
+                                <input type="hidden" name="id_pembelian" id="id_pembelian" value="{{$purchaseId }}">
                                 <input type="hidden" name="id_produk" id="id_produk">
                                 <input type="text" class="form-control" name="kode_produk" id="kode_produk">
                                 <span class="input-group-btn">
@@ -95,7 +95,7 @@ Purchase
                     <div class="col-lg-4">
                         <form action="{{ route('pembelian.store') }}" class="form-pembelian" method="post">
                             @csrf
-                            <input type="hidden" name="id_pembelian" value="{{ $id_pembelian }}">
+                            <input type="hidden" name="id_pembelian" value="{{$purchaseId }}">
                             <input type="hidden" name="total" id="total">
                             <input type="hidden" name="total_item" id="total_item">
                             <input type="hidden" name="bayar" id="bayar">
@@ -109,7 +109,7 @@ Purchase
                             <div class="form-group row">
                                 <label for="diskon" class="col-lg-2 control-label">Discount</label>
                                 <div class="col-lg-8">
-                                    <input type="number" name="diskon" id="diskon" class="form-control" value="{{ $diskon }}">
+                                    <input type="number" name="diskon" id="diskon" class="form-control" value="{{ $discount }}">
                                 </div>
                             </div>
                             <div class="form-group row">
@@ -146,14 +146,14 @@ Purchase
             serverSide: true,
             autoWidth: false,
             ajax: {
-                url: '{{ route('pembelian_detail.data', $id_pembelian) }}',
+                url: '{{ route('pembelian_detail.data',$purchaseId) }}',
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
-                {data: 'nama_produk'},
-                {data: 'harga_beli'},
-                {data: 'jumlah'},
+                {data: 'product_code'},
+                {data: 'product_name'},
+                {data: 'purchase_price'},
+                {data: 'quantity'},
                 {data: 'subtotal'},
                 {data: 'aksi', searchable: false, sortable: false},
             ],
