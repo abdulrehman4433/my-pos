@@ -36,17 +36,17 @@
             </li>
             <li class="header">SERVICES</li>
             <li>
-                <a href="{{ route('kategori.index') }}">
+                <a href="{{ route('project.index') }}">
                     <i class="fa fa-eject"></i> <span>Project</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('produk.index') }}">
+                <a href="{{ route('rental.index') }}">
                     <i class="fa fa-compass"></i> <span>Rental</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('produk.index') }}">
+                <a href="{{ route('maintenance.index') }}">
                     <i class="fa fa-cog"></i> <span>Maintinance</span>
                 </a>
             </li>

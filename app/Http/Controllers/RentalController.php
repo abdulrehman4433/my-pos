@@ -12,7 +12,7 @@ class RentalController extends Controller
      */
     public function index()
     {
-        //
+        return view('rental.index');
     }
 
     /**
