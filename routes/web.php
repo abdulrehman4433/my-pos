@@ -14,6 +14,9 @@ use App\Http\Controllers\{
     SettingController,
     SupplierController,
     UserController,
+    ProjectController,
+    RentalController,
+    MaintenanceController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -98,5 +101,17 @@ Route::group(['middleware' => 'auth'], function () {
     Route::group(['middleware' => 'level:1,2'], function () {
         Route::get('/profil', [UserController::class, 'profil'])->name('user.profil');
         Route::post('/profil', [UserController::class, 'updateProfil'])->name('user.update_profil');
+    });
+
+    Route::group(['middleware' => 'level:1,2'], function () {
+        Route::get('/project/data', [ProjectController::class, 'data'])->name('project.data');
+        Route::resource('/project', ProjectController::class);
+
+        Route::get('/rental/data', [RentalController::class, 'data'])->name('rental.data');
+        Route::resource('/rental', RentalController::class);
+
+        Route::get('/maintenance/data', [MaintenanceController::class, 'data'])->name('maintenance.data');
+        Route::resource('/maintenance', MaintenanceController::class);
+
     });
 });
