@@ -44,15 +44,15 @@ Purchase
                 <table>
                     <tr>
                         <td>Supplier</td>
-                        <td>: {{ $supplier->nama }}</td>
+                        <td>: {{ $supplier->name }}</td>
                     </tr>
                     <tr>
                         <td>Telephone</td>
-                        <td>: {{ $supplier->telepon }}</td>
+                        <td>: {{ $supplier->phone }}</td>
                     </tr>
                     <tr>
                         <td>Address</td>
-                        <td>: {{ $supplier->alamat }}</td>
+                        <td>: {{ $supplier->address }}</td>
                     </tr>
                 </table>
             </div>
@@ -141,29 +141,69 @@ Purchase
         $('body').addClass('sidebar-collapse');
 
         table = $('.table-pembelian').DataTable({
-            responsive: true,
-            processing: true,
-            serverSide: true,
-            autoWidth: false,
-            ajax: {
-                url: '{{ route('pembelian_detail.data',$purchaseId) }}',
-            },
-            columns: [
-                {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'product_code'},
-                {data: 'product_name'},
-                {data: 'purchase_price'},
-                {data: 'quantity'},
-                {data: 'subtotal'},
-                {data: 'aksi', searchable: false, sortable: false},
-            ],
-            dom: 'Brt',
-            bSort: false,
-            paginate: false
-        })
-        .on('draw.dt', function () {
-            loadForm($('#diskon').val());
-        });
+    responsive: true,
+    processing: true,
+    serverSide: true,
+    autoWidth: false,
+    paging: false,
+    ordering: false,
+    searching: false,
+    info: false,
+
+    ajax: {
+        url: '{{ route('pembelian_detail.data', $purchaseId) }}',
+        type: 'GET',
+        dataSrc: function (json) {
+            // ✅ set totals from server response
+            $('#total').val(json.total ?? 0);
+            $('#total_item').val(json.total_quantity ?? 0);
+
+            return json.data;
+        }
+    },
+
+    columns: [
+        {
+            data: 'DT_RowIndex',
+            searchable: false,
+            orderable: false,
+            width: '5%'
+        },
+        {
+            data: 'product_code',
+            orderable: false
+        },
+        {
+            data: 'product_name',
+            orderable: false
+        },
+        {
+            data: 'purchase_price',
+            orderable: false
+        },
+        {
+            data: 'quantity',
+            orderable: false,
+            width: '15%'
+        },
+        {
+            data: 'subtotal',
+            orderable: false
+        },
+        {
+            data: 'action',
+            searchable: false,
+            orderable: false,
+            width: '15%'
+        },
+    ],
+
+    drawCallback: function () {
+        // ✅ totals already set → just calculate payment
+        loadForm($('#diskon').val());
+    }
+});
+
         table2 = $('.table-produk').DataTable();
 
         $(document).on('input', '.quantity', function () {
@@ -253,22 +293,42 @@ Purchase
         }
     }
 
-    function loadForm(diskon = 0) {
-        $('#total').val($('.total').text());
-        $('#total_item').val($('.total_item').text());
+    // function loadForm(diskon = 0) {
+    //     $('#total').val($('.total').text());
+    //     $('#total_item').val($('.total_item').text());
 
-        $.get(`{{ url('/pembelian_detail/loadform') }}/${diskon}/${$('.total').text()}`)
-            .done(response => {
-                $('#totalrp').val('$ '+ response.totalrp);
-                $('#bayarrp').val('$ '+ response.bayarrp);
-                $('#bayar').val(response.bayar);
-                $('.tampil-bayar').text('$ '+ response.bayarrp);
-                $('.tampil-terbilang').text(response.terbilang);
-            })
-            .fail(errors => {
-                alert('Unable to display data');
-                return;
-            })
-    }
+    //     $.get(`{{ url('/pembelian_detail/loadform') }}/${diskon}/${$('.total').text()}`)
+    //         .done(response => {
+    //             $('#totalrp').val('$ '+ response.totalrp);
+    //             $('#bayarrp').val('$ '+ response.bayarrp);
+    //             $('#bayar').val(response.bayar);
+    //             $('.tampil-bayar').text('$ '+ response.bayarrp);
+    //             $('.tampil-terbilang').text(response.terbilang);
+    //         })
+    //         .fail(errors => {
+    //             alert('Unable to display data');
+    //             return;
+    //         })
+    // }
+    function loadForm(diskon = 0) {
+    let total = $('#total').val() || 0;
+    let totalItem = $('#total_item').val() || 0;
+
+    $('#total').val(total);
+    $('#total_item').val(totalItem);
+
+    $.get(`{{ url('/pembelian_detail/loadform') }}/${diskon}/${total}`)
+        .done(response => {
+            $('#totalrp').val('$ ' + response.totalrp);
+            $('#bayarrp').val('$ ' + response.bayarrp);
+            $('#bayar').val(response.bayar);
+            $('.tampil-bayar').text('$ ' + response.bayarrp);
+            $('.tampil-terbilang').text(response.terbilang);
+        })
+        .fail(() => {
+            alert('Unable to display data');
+        });
+}
+
 </script>
 @endpush

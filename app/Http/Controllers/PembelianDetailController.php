@@ -20,7 +20,6 @@ class PembelianDetailController extends Controller
         if (! $supplier) {
             abort(404);
         }
-        // dd( $purchaseId, $products, $supplier, $discount);
 
         return view('pembelian_detail.index', compact('purchaseId', 'products', 'supplier', 'discount'));
     }
@@ -31,43 +30,65 @@ class PembelianDetailController extends Controller
             ->where('purchase_id', $purchaseId)
             ->get();
 
-        $data = [];
         $total = 0;
         $totalQuantity = 0;
 
-        foreach ($details as $item) {
-            $row = [];
-            $row['product_code'] = '<span class="label label-success">' . $item->product->product_code . '</span>';
-            $row['product_name'] = $item->product->product_name;
-            $row['purchase_price'] = '$ ' . format_uang($item->purchase_price);
-            $row['quantity'] = '<input type="number" class="form-control input-sm quantity" data-id="' . $item->purchase_detail_id . '" value="' . $item->quantity . '">';
-            $row['subtotal'] = '$ ' . format_uang($item->subtotal);
-            $row['action'] = '<div class="btn-group">
-                                <button onclick="deleteData(`' . route('pembelian_detail.destroy', $item->purchase_detail_id) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                               </div>';
-
-            $data[] = $row;
-
-            $total += $item->purchase_price * $item->quantity;
-            $totalQuantity += $item->quantity;
-        }
-
-        // Add hidden row for total calculation
-        $data[] = [
-            'product_code' => '<div class="total hide">' . $total . '</div><div class="total_quantity hide">' . $totalQuantity . '</div>',
-            'product_name' => '',
-            'purchase_price' => '',
-            'quantity' => '',
-            'subtotal' => '',
-            'action' => '',
-        ];
-
         return datatables()
-            ->of($data)
+            ->of($details)
             ->addIndexColumn()
-            ->rawColumns(['action', 'product_code', 'quantity'])
+
+            ->addColumn('product_code', function ($item) {
+                return '<span class="label label-success">'
+                    . $item->product->product_code .
+                    '</span>';
+            })
+
+            ->addColumn('product_name', function ($item) {
+                return $item->product->product_name;
+            })
+
+            ->addColumn('purchase_price', function ($item) {
+                return '$ ' . format_uang($item->purchase_price);
+            })
+
+            ->addColumn('quantity', function ($item) {
+                return '<input type="number"
+                        class="form-control input-sm quantity"
+                        data-id="' . $item->purchase_detail_id . '"
+                        value="' . $item->quantity . '">';
+            })
+
+            ->addColumn('subtotal', function ($item) use (&$total, &$totalQuantity) {
+                $subtotal = $item->purchase_price * $item->quantity;
+                $total += $subtotal;
+                $totalQuantity += $item->quantity;
+
+                return '$ ' . format_uang($subtotal);
+            })
+
+            ->addColumn('action', function ($item) {
+                return '
+                    <div class="btn-group">
+                        <button onclick="deleteData(`' .
+                            route('pembelian_detail.destroy', $item->purchase_detail_id) .
+                        '`)"
+                        class="btn btn-xs btn-danger btn-flat">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>';
+            })
+
+            ->rawColumns(['product_code', 'quantity', 'action'])
+
+            // ✅ Send totals cleanly
+            ->with([
+                'total' => $total,
+                'total_quantity' => $totalQuantity,
+            ])
+
             ->make(true);
     }
+
 
     public function store(Request $request)
     {
@@ -108,13 +129,12 @@ class PembelianDetailController extends Controller
     {
         $payable = $total - ($discount / 100 * $total);
 
-        $data = [
+        return response()->json([
             'totalrp'   => format_uang($total),
             'bayar'     => $payable,
             'bayarrp'   => format_uang($payable),
             'terbilang' => ucwords(terbilang($payable) . ' Dollar')
-        ];
-
-        return response()->json($data);
+        ]);
     }
+
 }

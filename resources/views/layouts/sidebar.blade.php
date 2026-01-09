@@ -37,17 +37,17 @@
             <li class="header">SERVICES</li>
             <li>
                 <a href="{{ route('kategori.index') }}">
-                    <i class="fa fa-cube"></i> <span>Project</span>
+                    <i class="fa fa-eject"></i> <span>Project</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('produk.index') }}">
-                    <i class="fa fa-cubes"></i> <span>Rental</span>
+                    <i class="fa fa-compass"></i> <span>Rental</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('produk.index') }}">
-                    <i class="fa fa-cubes"></i> <span>Maintinance</span>
+                    <i class="fa fa-cog"></i> <span>Maintinance</span>
                 </a>
             </li>
             <li class="header">TRANSACTION</li>
@@ -68,19 +68,24 @@
             </li>
             <li>
                 <a href="{{ route('transaksi.baru') }}">
-                    <i class="fa fa-cart-plus"></i> <span>New Transaction</span>
+                    <i class="fa fa-cart-arrow-down"></i> <span>Return Transaction</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('transaksi.index') }}">
-                    <i class="fa fa-cart-arrow-down"></i> <span>Active Transaction</span>
+                    <i class="fa fa-cart-plus"></i> <span>Partial Transaction</span>
                 </a>
             </li>
             
             <li class="header">REPORT</li>
             <li>
                 <a href="{{ route('laporan.index') }}">
-                    <i class="fa fa-file-pdf-o"></i> <span>Income</span>
+                    <i class="fa fa-folder-open-o"></i> <span>Income</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('laporan.index') }}">
+                    <i class="fa fa-file-pdf-o"></i> <span>Invoice</span>
                 </a>
             </li>
             <li class="header">PEOPLE</li>
@@ -91,7 +96,7 @@
             </li>
             <li>
                 <a href="{{ route('member.index') }}">
-                    <i class="fa fa-id-card"></i> <span>Member</span>
+                    <i class="fa fa-id-card"></i> <span>Worker</span>
                 </a>
             </li>
             <li>
@@ -108,12 +113,12 @@
             @else
             <li>
                 <a href="{{ route('transaksi.baru') }}">
-                    <i class="fa fa-cart-plus"></i> <span>New Transaction</span>
+                    <i class="fa fa-cart-arrow-down"></i> <span>Return Transaction</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('transaksi.index') }}">
-                    <i class="fa fa-cart-arrow-down"></i> <span>Active Transaction</span>
+                    <i class="fa fa-cart-plus"></i> <span>Partial Transaction</span>
                 </a>
             </li>
             @endif

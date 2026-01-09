@@ -1,12 +1,12 @@
 @extends('layouts.master')
 
 @section('title')
-List of Members
+List of Workers
 @endsection
 
 @section('breadcrumb')
     @parent
-    <li class="active">List of Members</li>
+    <li class="active">List of Workers</li>
 @endsection
 
 @section('content')
@@ -14,8 +14,8 @@ List of Members
     <div class="col-lg-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addForm('{{ route('member.store') }}')" class="btn btn-success btn-flat"><i class="fa fa-plus-circle"></i> Add New Member</button>
-                <button onclick="cetakMember('{{ route('member.cetak_member') }}')" class="btn btn-primary btn-flat"><i class="fa fa-id-card"></i> Download Membership Card</button>
+                <button onclick="addForm('{{ route('member.store') }}')" class="btn btn-success btn-flat"><i class="fa fa-plus-circle"></i> Add New Worker</button>
+                {{-- <button onclick="cetakMember('{{ route('member.cetak_member') }}')" class="btn btn-primary btn-flat"><i class="fa fa-id-card"></i> Download Membership Card</button> --}}
             </div>
             <div class="box-body table-responsive">
                 <form action="" method="post" class="form-member">
@@ -88,7 +88,7 @@ List of Members
 
     function addForm(url) {
         $('#modal-form').modal('show');
-        $('#modal-form .modal-title').text('Add Member');
+        $('#modal-form .modal-title').text('Add Worker');
 
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
@@ -98,7 +98,7 @@ List of Members
 
     function editForm(url) {
         $('#modal-form').modal('show');
-        $('#modal-form .modal-title').text('Edit Member');
+        $('#modal-form .modal-title').text('Edit Worker');
 
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);

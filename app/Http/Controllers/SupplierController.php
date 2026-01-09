@@ -139,7 +139,7 @@ class SupplierController extends Controller
             if ($existingSupplier) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Supplier dengan nomor telepon ini sudah terdaftar',
+                    'message' => 'A supplier with this phone number is already registered.',
                     'data' => [
                         'existing_id' => $existingSupplier->supplier_id,
                         'existing_name' => $existingSupplier->name
@@ -161,7 +161,7 @@ class SupplierController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Supplier berhasil disimpan',
+                'message' => 'Supplier has been saved successfully.',
                 'data' => [
                     'supplier_id' => $supplier->supplier_id,
                     'name' => $supplier->name,
@@ -185,7 +185,7 @@ class SupplierController extends Controller
 
             return response()->json([
                 'status' => false,
-                'message' => 'Terjadi kesalahan sistem',
+                'message' => 'A system error has occurred.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
