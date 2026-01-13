@@ -49,7 +49,7 @@
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'created_at'},
+                {data: 'date'},
                 {data: 'description'},
                 {data: 'amount'},
                 {data: 'aksi', searchable: false, sortable: false},

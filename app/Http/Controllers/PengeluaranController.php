@@ -82,6 +82,9 @@ class PengeluaranController extends Controller
                 ->addColumn('amount_formatted', function ($pengeluaran) {
                     return format_uang($pengeluaran->amount); // Changed from 'nominal' to 'amount'
                 })
+                ->addColumn('date', function ($pengeluaran) {
+                    return $pengeluaran->date;
+                })
                 ->addColumn('branch_name', function ($pengeluaran) {
                     return $pengeluaran->branch ? $pengeluaran->branch->name : '<span class="text-muted">-</span>';
                 })
@@ -148,6 +151,7 @@ class PengeluaranController extends Controller
         $validator = Validator::make($request->all(), [
             'deskripsi' => 'required|string|max:255',
             'nominal' => 'required|integer|min:1',
+            'date' => 'required'
         ], [
             'deskripsi.required' => 'Deskripsi pengeluaran wajib diisi',
             'deskripsi.string' => 'Deskripsi harus berupa teks',
@@ -180,6 +184,7 @@ class PengeluaranController extends Controller
             // Map Indonesian field names to English database columns
             $expenseData = [
                 'description' => trim($request->deskripsi),      // Map: deskripsi -> description
+                'date'        => $request->date,
                 'amount' => (int) $request->nominal,             // Map: nominal -> amount
                 'branch_id' => $user->branch_id,                // Get from authenticated user
             ];
@@ -208,6 +213,7 @@ class PengeluaranController extends Controller
                 'data' => [
                     'expense_id' => $pengeluaran->expense_id,
                     'deskripsi' => $pengeluaran->description,
+                    'date'      => $pengeluaran->date,
                     'nominal' => $pengeluaran->amount,
                     'amount_formatted' => 'Rp ' . number_format($pengeluaran->amount, 0, ',', '.'),
                     'tanggal' => $pengeluaran->created_at->format('d/m/Y H:i:s'),
@@ -301,12 +307,14 @@ class PengeluaranController extends Controller
             $oldValues = [
                 'description' => $pengeluaran->description,
                 'amount' => $pengeluaran->amount,
+                'date'  => $pengeluaran->date
             ];
 
             // Map Indonesian field names to English database columns
             $updateData = [
                 'description' => trim($request->deskripsi),  // Map: deskripsi -> description
                 'amount' => (int) $request->nominal,         // Map: nominal -> amount
+                'date'  => $request->date
                 // Note: branch_id should NOT be updated - it should remain the same
             ];
 

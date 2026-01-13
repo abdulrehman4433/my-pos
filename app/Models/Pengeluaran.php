@@ -15,12 +15,14 @@ class Pengeluaran extends Model
     protected $fillable = [
         'description',
         'amount',
+        'date',
         'branch_id',
     ];
 
     protected $casts = [
         'amount' => 'integer',
         'branch_id' => 'integer',
+        'date'      => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
