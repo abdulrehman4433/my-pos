@@ -47,7 +47,7 @@
             </li>
             <li>
                 <a href="{{ route('maintenance.index') }}">
-                    <i class="fa fa-cog"></i> <span>Maintinance</span>
+                    <i class="fa fa-cog"></i> <span>Maintenance</span>
                 </a>
             </li>
             <li class="header">TRANSACTION</li>
@@ -56,11 +56,11 @@
                     <i class="fa fa-money"></i> <span>Expenses</span>
                 </a>
             </li>
-            <li>
+            {{-- <li>
                 <a href="{{ route('pembelian.index') }}">
                     <i class="fa fa-download"></i> <span>Purchase</span>
                 </a>
-            </li>
+            </li> --}}
             <li>
                 <a href="{{ route('penjualan.index') }}">
                     <i class="fa fa-dollar"></i> <span>Sales List</span>
@@ -76,18 +76,18 @@
                     <i class="fa fa-cart-plus"></i> <span>Partial Transaction</span>
                 </a>
             </li>
-            
-            <li class="header">REPORT</li>
             <li>
-                <a href="{{ route('laporan.index') }}">
-                    <i class="fa fa-folder-open-o"></i> <span>Income</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('laporan.index') }}">
+                <a href="{{ route('invoice.index') }}">
                     <i class="fa fa-file-pdf-o"></i> <span>Invoice</span>
                 </a>
             </li>
+            
+            {{-- <li class="header">REPORT</li> --}}
+            {{-- <li>
+                <a href="{{ route('laporan.index') }}">
+                    <i class="fa fa-folder-open-o"></i> <span>Income</span>
+                </a>
+            </li> --}}
             <li class="header">PEOPLE</li>
             <li>
                 <a href="{{ route('user.index') }}">

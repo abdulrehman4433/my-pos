@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('project_price', 10, 2);
             $table->string('project_duration');
             $table->text('project_details')->nullable();
-            $table->enum('project_status', ['planned', 'in_progress', 'completed', 'on_hold', 'cancelled'])->default('planned');
+            $table->enum('project_status', ['active', 'completed', 'on_hold', 'cancelled'])->default('on_hold');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();

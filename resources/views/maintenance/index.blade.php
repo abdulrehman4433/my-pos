@@ -1,12 +1,12 @@
 @extends('layouts.master')
 
 @section('title')
-    Supplier List
+    Maintenance List
 @endsection
 
 @section('breadcrumb')
     @parent
-    <li class="active">Supplier List</li>
+    <li class="active">Maintenance List</li>
 @endsection
 
 @section('content')
@@ -14,7 +14,9 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addForm('{{ route('supplier.store') }}')" class="btn btn-success btn-flat"><i class="fa fa-plus-circle"></i> Add New Supplier</button>
+                <button onclick="addForm('{{ route('maintenance.store') }}')" class="btn btn-success btn-flat">
+                    <i class="fa fa-plus-circle"></i> Add New Maintenance
+                </button>
             </div>
             <div class="box-body table-responsive">
                 <table class="table table-stiped table-bordered table-hover">
@@ -23,6 +25,9 @@
                         <th>Name</th>
                         <th>Telephone</th>
                         <th>Address</th>
+                        <th>Price</th>
+                        <th>Duration</th>
+                        <th>Status</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
                     </thead>
                 </table>
@@ -31,7 +36,7 @@
     </div>
 </div>
 
-@includeIf('supplier.form')
+@includeIf('maintenance.form') {{-- create a modal form for maintenance --}}
 @endsection
 
 @push('scripts')
@@ -45,19 +50,23 @@
             serverSide: true,
             autoWidth: false,
             ajax: {
-                url: '{{ route('supplier.data') }}',
+                url: '{{ route('maintenance.data') }}',
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'name'},
-                {data: 'phone'},
-                {data: 'address'},
-                {data: 'aksi', searchable: false, sortable: false},
+                {data: 'maintenance_name'},
+                {data: 'maintenance_phone'},
+                {data: 'maintenance_address'},
+                {data: 'maintenance_price'},
+                {data: 'maintenance_duration'},
+                {data: 'status', searchable: false, sortable: false},
+                {data: 'actions', searchable: false, sortable: false},
             ]
         });
 
+        // Form submit
         $('#modal-form').validator().on('submit', function (e) {
-            if (! e.preventDefault()) {
+            if (!e.preventDefault()) {
                 $.post($('#modal-form form').attr('action'), $('#modal-form form').serialize())
                     .done((response) => {
                         $('#modal-form').modal('hide');
@@ -73,28 +82,32 @@
 
     function addForm(url) {
         $('#modal-form').modal('show');
-        $('#modal-form .modal-title').text('Add Supplier');
+        $('#modal-form .modal-title').text('Add Maintenance');
 
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
-        $('#modal-form [name=nama]').focus();
+        $('#modal-form [name=maintenance_name]').focus();
     }
 
     function editForm(url) {
         $('#modal-form').modal('show');
-        $('#modal-form .modal-title').text('Edit Supplier');
+        $('#modal-form .modal-title').text('Edit Maintenance');
 
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
-        $('#modal-form [name=nama]').focus();
+        $('#modal-form [name=maintenance_name]').focus();
 
         $.get(url)
             .done((response) => {
-                $('#modal-form [name=nama]').val(response.name);
-                $('#modal-form [name=telepon]').val(response.phone);
-                $('#modal-form [name=alamat]').val(response.address);
+                $('#modal-form [name=maintenance_name]').val(response.maintenance_name);
+                $('#modal-form [name=maintenance_phone]').val(response.maintenance_phone);
+                $('#modal-form [name=maintenance_address]').val(response.maintenance_address);
+                $('#modal-form [name=maintenance_price]').val(response.maintenance_price);
+                $('#modal-form [name=maintenance_duration]').val(response.maintenance_duration);
+                $('#modal-form [name=maintenance_details]').val(response.maintenance_details);
+                $('#modal-form [name=is_active]').prop('checked', response.is_active);
             })
             .fail((errors) => {
                 alert('Unable to display data');

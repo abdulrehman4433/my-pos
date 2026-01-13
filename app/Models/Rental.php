@@ -37,9 +37,13 @@ class Rental extends Model
         'rental_person_address',
         'rental_price',
         'rental_duration',
+        'rental_start_date',
+        'rental_end_date',
+        'rental_status',
         'created_by',
         'updated_by',
     ];
+
 
     /**
      * The attributes that should be cast.

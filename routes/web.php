@@ -16,7 +16,8 @@ use App\Http\Controllers\{
     UserController,
     ProjectController,
     RentalController,
-    MaintenanceController
+    MaintenanceController,
+    InvoiceController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -112,6 +113,13 @@ Route::group(['middleware' => 'auth'], function () {
 
         Route::get('/maintenance/data', [MaintenanceController::class, 'data'])->name('maintenance.data');
         Route::resource('/maintenance', MaintenanceController::class);
+
+        Route::get('invoice/{id}/pdf', [InvoiceController::class, 'exportInvoicePDF'])->name('invoice.invoice_pdf');
+        Route::get('invoice/data', [InvoiceController::class, 'Data'])->name('invoice.data');
+        Route::get('invoice/product', [InvoiceController::class, 'ProductData'])->name('invoice.product');
+        Route::resource('invoice', InvoiceController::class);
+        Route::get('invoice/view/{id}', [InvoiceController::class, 'view'])->name('invoice.view');
+
 
     });
 });

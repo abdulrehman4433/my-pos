@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
 
+            $table->string('invoice_code');
             $table->string('invoice_reference');
             $table->unsignedBigInteger('reference_id')->nullable();
 
@@ -22,7 +23,7 @@ return new class extends Migration
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('grand_total', 10, 2);
 
-            $table->decimal('payment_received', 10, 2)->default(0);
+            $table->string('payment_received');
             $table->enum('payment_status', ['unpaid', 'partial', 'paid'])->default('paid');
 
             $table->unsignedBigInteger('created_by');

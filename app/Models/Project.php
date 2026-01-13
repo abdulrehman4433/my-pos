@@ -5,9 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\User;
 
+class Project extends Model
 {
     use HasFactory;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'projects';
 
     /**
      * The primary key for the model.
@@ -29,6 +38,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
         'project_price',
         'project_duration',
         'project_details',
+        'project_status',
         'created_by',
         'updated_by',
     ];
@@ -61,43 +71,34 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     }
 
     /**
-     * Get the route key for the model.
-     *
-     * @return string
+     * Use project_code for route model binding.
      */
-    public function getRouteKeyName()
+    public function getRouteKeyName(): string
     {
         return 'project_code';
     }
 
     /**
-     * Scope a query to search projects.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $search
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Scope: search projects.
      */
-    public function scopeSearch($query, $search)
+    public function scopeSearch($query, string $search)
     {
-        return $query->where('project_code', 'LIKE', "%{$search}%")
-                     ->orWhere('project_name', 'LIKE', "%{$search}%")
-                     ->orWhere('project_phone', 'LIKE', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            $q->where('project_code', 'LIKE', "%{$search}%")
+              ->orWhere('project_name', 'LIKE', "%{$search}%")
+              ->orWhere('project_phone', 'LIKE', "%{$search}%");
+        });
     }
 
     /**
-     * Scope a query to filter by price range.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  float  $min
-     * @param  float  $max
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Scope: filter by price range.
      */
-    public function scopePriceRange($query, $min = 0, $max = null)
+    public function scopePriceRange($query, float $min = 0, float $max = null)
     {
-        if ($max) {
+        if ($max !== null) {
             return $query->whereBetween('project_price', [$min, $max]);
         }
-        
+
         return $query->where('project_price', '>=', $min);
     }
 }

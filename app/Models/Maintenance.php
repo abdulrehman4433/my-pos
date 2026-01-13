@@ -37,6 +37,7 @@ class Maintenance extends Model
         'maintenance_price',
         'maintenance_duration',
         'maintenance_details',
+        'is_active',
         'created_by',
         'updated_by',
     ];
