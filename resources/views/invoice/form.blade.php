@@ -15,6 +15,15 @@
 
                 <div class="modal-body">
 
+                    {{-- Invoice Code --}}
+
+                    <div class="form-group row">
+                        <label class="col-lg-3 control-label">Invoice Code</label>
+                        <div class="col-lg-7">
+                            <input type="text" name="invoice_code" id="invoice_code" class="form-control" />
+                        </div>
+                    </div>
+
                     {{-- Invoice Reference --}}
                     <div class="form-group row">
                         <label class="col-lg-3 control-label">Invoice Reference</label>
@@ -128,6 +137,19 @@
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    {{-- Invoice Resource --}}
+                    <div class="form-group row">
+                        <label class="col-lg-3 control-label">Invoice Resource</label>
+                        <div class="col-lg-7">
+
+                            <select name="invoice_resource" id="invoice_resource" onchange="resourceChanged(this)" class="form-control" required>
+                                <option value="">-- Select Resource --</option>
+                                <option value="customer">Customer</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
                     </div>
 

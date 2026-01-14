@@ -16,7 +16,8 @@ return new class extends Migration
 
             $table->string('invoice_code');
             $table->string('invoice_reference');
-            $table->unsignedBigInteger('reference_id')->nullable();
+            $table->string('invoice_resource');
+            $table->unsignedBigInteger('invoice_resource_id')->nullable();
 
             $table->decimal('sub_total', 10, 2);
             $table->decimal('tax_amount', 10, 2)->default(0);

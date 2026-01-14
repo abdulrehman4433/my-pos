@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
 
 use function Livewire\str;
 
@@ -112,87 +114,218 @@ class InvoiceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        // Validate request
-        $request->validate([
-            'invoice_reference' => 'required|string|max:255',
-            'reference_id' => 'nullable|integer',
-            'quantity' => 'nullable|integer|min:1',
-            'sub_total' => 'required|numeric|min:0',
-            'tax_amount' => 'nullable|numeric|min:0',
-            'discount_amount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|string',
-            'payment_status' => 'required|string|in:paid,unpaid,partial',
+    
+    // public function store(Request $request)
+    // {
+    //     // Base validation
+    //     $request->validate([
+    //         'invoice_code'       => ['required', 'string', 'max:255'],
+    //         'invoice_reference'  => ['required', 'string', 'max:255'], // e.g., 'product'
+    //         'sub_total'          => ['required', 'numeric', 'min:0'],
+    //         'tax_amount'         => ['nullable', 'numeric', 'min:0'],
+    //         'discount_amount'    => ['nullable', 'numeric', 'min:0'],
+    //         'payment_method'     => ['required', 'string', 'max:50'],
+    //         'payment_status'     => ['required', 'string', Rule::in(['paid','unpaid','partial'])],
+    //         // If reference is product, enforce the structure of products array
+    //         'products'           => ['nullable', 'array'],
+    //         'products.*.id'      => ['required_if:invoice_reference,product', 'integer'],
+    //         'products.*.qty'     => ['required_if:invoice_reference,product', 'integer', 'min:1'],
+    //         'products.*.price'   => ['nullable', 'numeric', 'min:0'],
+    //     ]);
+
+    //     // Compute totals
+    //     $subTotal       = (float) $request->input('sub_total', 0);
+    //     $taxAmount      = (float) $request->input('tax_amount', 0);
+    //     $discountAmount = (float) $request->input('discount_amount', 0);
+
+    //     $grandTotal = $subTotal + $taxAmount - max(0, $discountAmount);
+
+    //     return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountAmount, $grandTotal) {
+
+    //         // Create invoice
+    //         $invoice = Invoice::create([
+    //             'invoice_code'      => $request->input('invoice_code'),
+    //             'invoice_reference' => $request->input('invoice_reference'),
+    //             'sub_total'         => $subTotal,
+    //             'tax_amount'        => $taxAmount,
+    //             'discount_amount'   => $discountAmount,
+    //             'grand_total'       => $grandTotal,
+    //             'payment_received'  => $request->input('payment_method'), // confirm column name vs meaning
+    //             'payment_status'    => $request->input('payment_status'),
+    //             'created_by'        => auth()->id(),
+    //             'updated_by'        => auth()->id(),
+    //         ]);
+
+    //         // If it's a product invoice, add items
+    //         if ($request->input('invoice_reference') === 'product') {
+    //             $products = $request->input('products', []);
+
+    //             // Skip if empty or not an array
+    //             if (is_array($products) && count($products) > 0) {
+    //                 foreach ($products as $single_product) {
+    //                     // $single_product is an array: ['id' => ..., 'qty' => ..., 'price' => ...]
+    //                     $productId = $single_product['id'] ?? null;
+    //                     $qty       = (int) ($single_product['qty'] ?? 0);
+
+    //                     if (!$productId || $qty < 1) {
+    //                         // You could throw a ValidationException or just continue
+    //                         continue;
+    //                     }
+
+    //                     // Fetch product (your model name looks like "Produk"; confirm)
+    //                     $product = Produk::find($productId);
+    //                     if (!$product) {
+    //                         // Optional: throw an exception to abort the transaction
+    //                         // throw new \RuntimeException("Product {$productId} not found.");
+    //                         continue;
+    //                     }
+
+    //                     // Prefer the product's selling_price as the source of truth
+    //                     $unitPrice  = (float) ($product->selling_price);
+    //                     $lineTotal  = $unitPrice * $qty;
+
+    //                     InvoiceItem::create([
+    //                         'invoice_id'      => $invoice->id,
+    //                         'item_name'       => $product->product_name,
+    //                         'per_item_price'  => $unitPrice,
+    //                         'quantity'        => $qty,
+    //                         'total_price'     => $lineTotal,
+    //                     ]);
+    //                 }
+    //             }
+    //         }
+
+    //         return response()->json([
+    //             'success'     => true,
+    //             'message'     => 'Invoice created successfully!',
+    //             'invoice_id'  => $invoice->id,
+    //             'grand_total' => $grandTotal,
+    //         ]);
+    //     }, 3); // retry up to 3 times on deadlocks
+    // }
+   public function store(Request $request)
+{
+    // Base validation
+    $request->validate([
+        'invoice_code'       => ['required', 'string', 'max:255'],
+        'invoice_reference'  => ['required', 'string', 'max:255'],
+        'sub_total'          => ['required', 'numeric', 'min:0'],
+        'tax_amount'         => ['nullable', 'numeric', 'min:0'],
+        'discount_amount'    => ['nullable', 'numeric', 'min:0'],
+        'payment_method'     => ['required', 'string', 'max:50'],
+        'payment_status'     => ['required', 'string', Rule::in(['paid','unpaid','partial'])],
+        // Products array - required only for product invoices
+        'products'           => ['nullable', 'array'],
+        'products.*.id'      => ['required_if:invoice_reference,product', 'integer'],
+        'products.*.qty'     => ['required_if:invoice_reference,product', 'integer', 'min:1'],
+        'products.*.price'   => ['nullable', 'numeric', 'min:0'],
+        // For non-product invoices
+        'reference_id'       => ['nullable', 'integer'], // Changed to integer
+    ]);
+
+    // Compute totals
+    $subTotal       = (float) $request->input('sub_total', 0);
+    $taxAmount      = (float) $request->input('tax_amount', 0);
+    $discountAmount = (float) $request->input('discount_amount', 0);
+
+    $grandTotal = $subTotal + $taxAmount - max(0, $discountAmount);
+
+    return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountAmount, $grandTotal) {
+
+        // Determine invoice resource and resource ID based on reference
+        $invoiceReference = $request->input('invoice_reference');
+        $referenceId = $request->input('reference_id');
+        
+        // Handle empty reference_id - set to null if empty string or not provided
+        if ($referenceId === '' || $referenceId === null) {
+            $referenceId = null;
+        } else {
+            // Convert to integer if it's a valid number
+            $referenceId = (int) $referenceId;
+        }
+        
+        // Map reference to resource type (you can adjust this mapping as needed)
+        $resourceMapping = [
+            'product' => 'product',
+            'project' => 'project', 
+            'maintenance' => 'maintenance',
+            // Add other mappings as needed
+        ];
+        
+        $invoiceResource = $resourceMapping[$invoiceReference] ?? $invoiceReference;
+
+        // Create invoice
+        $invoice = Invoice::create([
+            'invoice_code'        => $request->input('invoice_code'),
+            'invoice_reference'   => $invoiceReference,
+            'invoice_resource'    => $invoiceResource,
+            'invoice_resource_id' => $referenceId, // Now properly null or integer
+            'sub_total'           => $subTotal,
+            'tax_amount'          => $taxAmount,
+            'discount_amount'     => $discountAmount,
+            'grand_total'         => $grandTotal,
+            'payment_received'    => $request->input('payment_method'),
+            'payment_status'      => $request->input('payment_status'),
+            'created_by'          => auth()->id(),
+            'updated_by'          => auth()->id(),
         ]);
 
-        DB::beginTransaction();
+        // IMPORTANT: For non-product invoices, ignore products array if provided
+        if ($invoiceReference === 'product') {
+            $products = $request->input('products', []);
 
-        try {
-            // Calculate grand total
-            $subTotal = $request->sub_total;
-            $taxAmount = $request->tax_amount ?? 0;
-            $discountAmount = $request->discount_amount ?? 0;
+            if (is_array($products) && count($products) > 0) {
+                foreach ($products as $single_product) {
+                    $productId = $single_product['id'] ?? null;
+                    $qty       = (int) ($single_product['qty'] ?? 0);
+                    $price     = (float) ($single_product['price'] ?? 0);
 
-            $grandTotal = $subTotal + $taxAmount;
-            if ($discountAmount > 0) {
-                $grandTotal -= $discountAmount;
-            }
-            $referenceId = $request->filled('reference_id')
-            ? (int) $request->reference_id
-            : null;
+                    if (!$productId || $qty < 1) {
+                        continue;
+                    }
 
-            // Create Invoice
-            $invoice = Invoice::create([
-                'invoice_code' => Str::upper(Str::random(6)),
-                'invoice_reference' => $request->invoice_reference,
-                'reference_id' => $referenceId,
-                'sub_total' => $subTotal,
-                'tax_amount' => $taxAmount,
-                'discount_amount' => $discountAmount,
-                'grand_total' => $grandTotal,
-                'payment_received' => $request->payment_method,
-                'payment_status' => $request->payment_status,
-                'created_by' => auth()->id(),
-                'updated_by' => auth()->id(),
-            ]);
+                    $product = Produk::find($productId);
+                    if (!$product) {
+                        continue;
+                    }
 
-            // If it's a product invoice, create InvoiceItem
-            if (
-                $request->invoice_reference === 'product'
-                && $referenceId !== null
-                && $request->filled('quantity')
-            ) {
-                $product = Produk::find($referenceId);
+                    // Use provided price or fall back to product's selling_price
+                    $unitPrice = $price > 0 ? $price : (float) ($product->selling_price);
+                    $lineTotal = $unitPrice * $qty;
 
-                if ($product) {
                     InvoiceItem::create([
-                        'invoice_id' => $invoice->id,
-                        'item_name' => $product->product_name,
-                        'per_item_price' => $product->selling_price,
-                        'quantity' => $request->quantity,
-                        'total_price' => $product->selling_price * $request->quantity,
+                        'invoice_id'      => $invoice->id,
+                        'item_name'       => $product->product_name,
+                        'per_item_price'  => $unitPrice,
+                        'quantity'        => $qty,
+                        'total_price'     => $lineTotal,
                     ]);
                 }
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Invoice created successfully!',
-                'invoice_id' => $invoice->id,
-                'grand_total' => $grandTotal,
+        } else {
+            // For non-product invoices (like project, maintenance, etc.)
+            // Create a single invoice item with the reference as item name
+            $itemName = ucfirst($invoiceReference) . " Invoice";
+            $quantity = 1; // Default quantity for non-product invoices
+            $perItemPrice = $subTotal; // Use sub_total as the price
+            
+            InvoiceItem::create([
+                'invoice_id'      => $invoice->id,
+                'item_name'       => $itemName,
+                'per_item_price'  => $perItemPrice,
+                'quantity'        => $quantity,
+                'total_price'     => $subTotal, // total_price equals sub_total for single item
             ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error creating invoice: ' . $e->getMessage()
-            ], 500);
         }
-    }
+
+        return response()->json([
+            'success'     => true,
+            'message'     => 'Invoice created successfully!',
+            'invoice_id'  => $invoice->id,
+            'grand_total' => $grandTotal,
+        ]);
+    }, 3);
+}
 
     /**
      * Display the specified resource.

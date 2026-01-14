@@ -275,7 +275,7 @@
             <div class="invoice-details-section">
                 <div class="section-title">Invoice Details</div>
                 <div class="invoice-info">
-                    Invoice No. : {{ $invoice->id ?? '490' }}<br>
+                    Invoice No. : {{ $invoice->invoice_code ?? '490' }}<br>
                     Date : {{ $invoice->created_at->format('d-m-Y') ?? '30-12-2025' }}<br>
                     Time : {{ $invoice->created_at->format('h:i A') ?? '02:28 PM' }}
                 </div>
@@ -295,19 +295,6 @@
                 </tr>
             </thead>
             <tbody>
-                @php
-                    $sampleItems = [
-                        ['name' => 'china push waste 6x6', 'qty' => 2, 'unit' => 'Pcs', 'price' => 480, 'amount' => 960],
-                        ['name' => 'vanity waste 4\'', 'qty' => 6, 'unit' => 'Pcs', 'price' => 390, 'amount' => 2340],
-                        ['name' => 'vanity waste 6;', 'qty' => 6, 'unit' => 'Pcs', 'price' => 490, 'amount' => 2940],
-                        ['name' => 'BASIN MIXTURE LIVER BRASS', 'qty' => 2, 'unit' => 'Pcs', 'price' => 3200, 'amount' => 6400],
-                        ['name' => 'basin mixture china 00h', 'qty' => 2, 'unit' => 'Pcs', 'price' => 1100, 'amount' => 2200],
-                        ['name' => 'NUT JALI BRAVO', 'qty' => 6, 'unit' => 'Pcs', 'price' => 175, 'amount' => 1050],
-                        ['name' => 'DGOS JALI BHARI', 'qty' => 2, 'unit' => 'Pcs', 'price' => 290, 'amount' => 580],
-                        ['name' => 'MAZI Jali Nut', 'qty' => 2, 'unit' => 'Pcs', 'price' => 450, 'amount' => 900],
-                        ['name' => 'Gisa Elow Waste', 'qty' => 6, 'unit' => 'Pcs', 'price' => 170, 'amount' => 1020],
-                    ];
-                @endphp
                 
                 @if(isset($invoice->items) && count($invoice->items) > 0)
                     @foreach($invoice->items as $index => $product)
@@ -321,16 +308,14 @@
                         </tr>
                     @endforeach
                 @else
-                    @foreach($sampleItems as $index => $item)
-                        <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $item['name'] }}</td>
-                            <td>{{ $item['qty'] }}</td>
-                            <td>{{ $item['unit'] }}</td>
-                            <td>Rs {{ number_format($item['price'], 0) }}</td>
-                            <td>Rs {{ number_format($item['amount'], 0) }}</td>
-                        </tr>
-                    @endforeach
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $invoice->invoice_reference }}</td>
+                        <td>{{ $invoice }}</td>
+                        <td>{{ $invoice }}</td>
+                        <td>Rs {{ number_format($item['price'], 0) }}</td>
+                        <td>Rs {{ number_format($item['amount'], 0) }}</td>
+                    </tr>
                 @endif
             </tbody>
         </table>
@@ -343,10 +328,10 @@
                 <td>Rs {{ isset($invoice) ? number_format($invoice->sub_total ?? $invoice->grand_total + ($invoice->discount ?? 0), 0) : '167,361' }}</td>
             </tr>
             
-            @if(isset($invoice) && $invoice->discount > 0)
+            @if(isset($invoice) && $invoice->discount_amount > 0)
             <tr>
                 <td>Discount</td>
-                <td>Rs {{ number_format($invoice->discount, 0) }}</td>
+                <td>{{ $invoice->discount_amount }}%</td>
             </tr>
             @endif
             

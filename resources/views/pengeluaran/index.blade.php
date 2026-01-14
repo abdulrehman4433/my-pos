@@ -20,9 +20,9 @@
                 <table class="table table-stiped table-bordered table-hover">
                     <thead>
                         <th width="5%">#</th>
-                        <th>Date</th>
                         <th>Description</th>
                         <th>Amount</th>
+                        <th>Date</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
                     </thead>
                 </table>
@@ -49,9 +49,9 @@
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'date'},
                 {data: 'description'},
                 {data: 'amount'},
+                {data: 'date'},
                 {data: 'aksi', searchable: false, sortable: false},
             ]
         });

@@ -23,7 +23,7 @@ class PengeluaranController extends Controller
             
             // Start query with eager loading
             $query = Pengeluaran::with('branch')
-                ->select('expense_id', 'description', 'amount', 'created_at', 'branch_id');
+                ->select('expense_id', 'description', 'amount', 'date', 'created_at', 'branch_id');
             
             // Filter by branch if user belongs to a specific branch
             if ($user->branch_id) {
@@ -83,7 +83,7 @@ class PengeluaranController extends Controller
                     return format_uang($pengeluaran->amount); // Changed from 'nominal' to 'amount'
                 })
                 ->addColumn('date', function ($pengeluaran) {
-                    return $pengeluaran->date;
+                    return optional($pengeluaran->date)->format('m/d/Y');
                 })
                 ->addColumn('branch_name', function ($pengeluaran) {
                     return $pengeluaran->branch ? $pengeluaran->branch->name : '<span class="text-muted">-</span>';

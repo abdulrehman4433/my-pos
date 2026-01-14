@@ -86,15 +86,40 @@
         });
     });
 
-    function addForm(url) {
-        $('#modal-form').modal('show');
-        $('#modal-form .modal-title').text('Add Invoice');
+    
 
-        $('#modal-form form')[0].reset();
-        $('#modal-form form').attr('action', url);
-        $('#modal-form [name=_method]').val('post');
-        $('#modal-form [name=invoice_reference]').focus();
+    // Generates a 6-digit code as a string, preserving leading zeros.
+    function generateInvoiceCode() {
+        const array = new Uint32Array(1);
+        window.crypto.getRandomValues(array);
+        const num = array[0] % 1_000_000;
+        return String(num).padStart(6, '0');
     }
+
+    // Optional: if you want a prefix like INV-123456
+    function formatInvoiceCode(code, prefix = '') {
+        return prefix ? `${prefix}${code}` : code;
+    }
+
+    function addForm(url) {
+        const $modal = $('#modal-form');
+
+        $modal.modal('show');
+        $modal.find('.modal-title').text('Add Invoice');
+
+        const $form = $modal.find('form');
+        $form[0].reset();
+        $form.attr('action', url);
+        $form.find('[name=_method]').val('post');
+
+        // Generate & set the invoice code
+        const code = generateInvoiceCode();
+        $form.find('#invoice_code').val(formatInvoiceCode(code, 'INV-'));
+
+        // Focus whatever field you prefer next:
+        $form.find('[name=invoice_reference]').focus();
+    }
+
 
     let selectedProducts = [];
 
