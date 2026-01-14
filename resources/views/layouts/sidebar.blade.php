@@ -104,6 +104,11 @@
                     <i class="fa fa-truck"></i> <span>Supplier</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('customer.index') }}">
+                    <i class="fa fa-address-card-o"></i> <span>Customer</span>
+                </a>
+            </li>
             <li class="header">SYSTEM</li>
             <li>
                 <a href="{{ route("setting.index") }}">

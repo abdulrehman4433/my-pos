@@ -17,12 +17,12 @@ use App\Http\Controllers\{
     ProjectController,
     RentalController,
     MaintenanceController,
-    InvoiceController
+    InvoiceController,
+    CustomerController
 };
 use Illuminate\Support\Facades\Route;
 
 /*
-|--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 |
@@ -54,6 +54,9 @@ Route::group(['middleware' => 'auth'], function () {
 
         Route::get('/supplier/data', [SupplierController::class, 'data'])->name('supplier.data');
         Route::resource('/supplier', SupplierController::class);
+
+        Route::get('/customer/data', [CustomerController::class, 'data'])->name('customer.data');
+        Route::resource('/customer', CustomerController::class);
 
         Route::get('/pengeluaran/data', [PengeluaranController::class, 'data'])->name('pengeluaran.data');
         Route::resource('/pengeluaran', PengeluaranController::class);
