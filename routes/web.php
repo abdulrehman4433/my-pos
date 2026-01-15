@@ -117,12 +117,11 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/maintenance/data', [MaintenanceController::class, 'data'])->name('maintenance.data');
         Route::resource('/maintenance', MaintenanceController::class);
 
-        Route::get('invoice/{id}/pdf', [InvoiceController::class, 'exportInvoicePDF'])->name('invoice.invoice_pdf');
         Route::get('invoice/data', [InvoiceController::class, 'Data'])->name('invoice.data');
         Route::get('invoice/product', [InvoiceController::class, 'ProductData'])->name('invoice.product');
+        Route::get('invoice/customer', [InvoiceController::class, 'CustomerData'])->name('invoice.customer');
         Route::resource('invoice', InvoiceController::class);
-        Route::get('invoice/view/{id}', [InvoiceController::class, 'view'])->name('invoice.view');
-
-
+        Route::get('invoice/view/{id}/{format?}', [InvoiceController::class, 'view'])->name('invoice.view');
+        Route::get('/invoice/download/{id}', [InvoiceController::class, 'downloadPDF'])->name('invoice.download');
     });
 });

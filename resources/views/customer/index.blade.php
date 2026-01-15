@@ -31,7 +31,6 @@
                             <th>Balance</th>
                             <th>Discount (%)</th>
                             <th>Status</th>
-                            <th>Notes</th>
                             <th width="12%"><i class="fa fa-cog"></i></th>
                         </tr>
                     </thead>
@@ -66,7 +65,6 @@
                 { data: 'current_balance' },
                 { data: 'discount' },
                 { data: 'is_active' },
-                { data: 'notes' },
                 { data: 'aksi', searchable: false, sortable: false },
             ]
         });
@@ -84,6 +82,10 @@
             }
         });
     });
+    function generateCustomerCode(length = 6) {
+        return Math.floor(Math.random() * Math.pow(10, length));
+    }
+
 
     function addForm(url) {
         $('#modal-form').modal('show');
@@ -92,6 +94,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
+        $('#modal-form [name=customer_code]').val(generateCustomerCode());
         $('#modal-form [name=customer_code]').focus();
     }
 

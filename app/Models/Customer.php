@@ -24,7 +24,7 @@ class Customer extends Model
 
     protected $casts = [
         'current_balance' => 'decimal:2',
-        'discount'        => 'decimal:2',
+        'discount'        => 'integer',
         'is_active'       => 'boolean',
     ];
 

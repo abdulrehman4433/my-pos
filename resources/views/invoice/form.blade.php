@@ -44,7 +44,6 @@
                     <div class="form-group row" style="display: none;" id="reference_id_group">
                         <label class="col-lg-3 control-label">Select Product</label>
                         <div class="col-lg-7" id="reference_id_container">
-                            <!-- Default hidden input -->
                             <input type="hidden" name="reference_id" value="" class="form-control">
                         </div>
                     </div>
@@ -82,13 +81,33 @@
                                    class="form-control">
                         </div>
                     </div>
+                    
+                    {{-- Invoice Resource --}}
+                    <div class="form-group row">
+                        <label class="col-lg-3 control-label">Invoice Resource</label>
+                        <div class="col-lg-7">
+                            <select name="invoice_resource" id="invoice_resource" onchange="invoiceResource(this)" class="form-control" required>
+                                <option value="">-- Select Resource --</option>
+                                <option value="customer">Customer</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Resource ID --}}
+                    <div class="form-group row" style="display: none;" id="resource_id_group">
+                        <label class="col-lg-3 control-label">Select Customer</label>
+                        <div class="col-lg-7" id="resource_id_container"></div>
+                    </div>
+
 
                     {{-- Discount Amount --}}
                     <div class="form-group row">
-                        <label class="col-lg-3 control-label">Discount</label>
+                        <label class="col-lg-3 control-label">Discount(%)</label>
                         <div class="col-lg-7">
                             <input type="number" step="0.01" min="0"
                                    name="discount_amount"
+                                   id="discount_amount"
                                    class="form-control">
                         </div>
                     </div>
@@ -137,19 +156,6 @@
                                 </thead>
                                 <tbody></tbody>
                             </table>
-                        </div>
-                    </div>
-
-                    {{-- Invoice Resource --}}
-                    <div class="form-group row">
-                        <label class="col-lg-3 control-label">Invoice Resource</label>
-                        <div class="col-lg-7">
-
-                            <select name="invoice_resource" id="invoice_resource" onchange="resourceChanged(this)" class="form-control" required>
-                                <option value="">-- Select Resource --</option>
-                                <option value="customer">Customer</option>
-                                <option value="other">Other</option>
-                            </select>
                         </div>
                     </div>
 

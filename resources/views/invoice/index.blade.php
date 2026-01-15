@@ -47,6 +47,8 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <script>
     let table;
 
@@ -86,8 +88,6 @@
         });
     });
 
-    
-
     // Generates a 6-digit code as a string, preserving leading zeros.
     function generateInvoiceCode() {
         const array = new Uint32Array(1);
@@ -119,7 +119,6 @@
         // Focus whatever field you prefer next:
         $form.find('[name=invoice_reference]').focus();
     }
-
 
     let selectedProducts = [];
 
@@ -284,6 +283,76 @@
         const url = `/invoice/view/${invoiceId}`;
         window.open(url, '_blank'); // opens in new tab
     }
+
+    function viewFormDownload(invoiceId) {
+        // Open invoice in same tab or new tab with PDF print mode
+        const url = `/invoice/view/${invoiceId}?pdf=1`;
+        const w = window.open(url, '_blank'); // open in new tab
+
+        // Wait for page to load, then call print
+        w.onload = function() {
+            w.print(); // triggers browser PDF dialog
+        };
+    }
+
+    function invoiceResource(select) {
+        const value = select.value;
+        const $group = $('#resource_id_group');
+        const $container = $('#resource_id_container');
+
+        // Reset
+        $container.empty();
+        $group.hide();
+
+        if (value !== 'customer') return;
+
+        $group.show();
+
+        $.ajax({
+            url: "{{ route('invoice.customer') }}",
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+
+                // Create select element
+                const $select = $('<select>', {
+                    class: 'form-control',
+                    id: 'resource_id',
+                    name: 'resource_id'
+                });
+
+                $select.append('<option value="">Select Customer</option>');
+
+                if (Array.isArray(res) && res.length) {
+                    res.forEach(item => {
+                        $select.append(
+                            $('<option>', {
+                                value: item.id,
+                                text: item.name,
+                                'data-name': item.name,
+                                'data-discount': item.discount
+                            })
+                        );
+                    });
+                } else {
+                    $select.append('<option value="">No customers found</option>');
+                }
+
+                $container.append($select);
+            },
+            error: function () {
+                $container.append(
+                    '<span class="text-danger">Failed to load customers</span>'
+                );
+            }
+        });
+    }
+
+    $(document).on('change', '#resource_id', function () {
+        const discount = $(this).find(':selected').data('discount');
+
+        $('#discount_amount').val(discount ?? 0);
+    });
 
 </script>
 @endpush
