@@ -27,6 +27,12 @@ return new class extends Migration
             $table->string('payment_received');
             $table->enum('payment_status', ['unpaid', 'partial', 'paid'])->default('paid');
 
+            $table->decimal('received_amount', 15, 2)->default(0);
+            $table->decimal('remaining_amount', 15, 2)->default(0);
+
+            $table->decimal('returned_amount', 15, 2)->default(0);
+            $table->enum('return_status', ['none', 'partial', 'full'])->default('none');
+
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();
 

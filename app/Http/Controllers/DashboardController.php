@@ -9,6 +9,10 @@ use App\Models\Pengeluaran;
 use App\Models\Penjualan;
 use App\Models\Produk;
 use App\Models\Supplier;
+use App\Models\Invoice;
+use App\Models\Expense;
+use App\Models\InvoiceItem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -19,9 +23,18 @@ class DashboardController extends Controller
         $produk = Produk::count();
         $supplier = Supplier::count();
         $member = Member::count();
-        $penjualan = Penjualan::sum('received');
+        $penjualan = Invoice::sum('grand_total');
+        $total_invoice = Invoice::get();
         $pengeluaran = Pengeluaran::sum('amount');
-        $pembelian = Pembelian::sum('payment');
+        $pembelian = Produk::sum('purchase_price');
+        $top_selling_products = InvoiceItem::select(
+                'item_name',
+                DB::raw('SUM(quantity) as total_quantity_sold')
+            )
+            ->groupBy('item_name')
+            ->orderByDesc('total_quantity_sold')
+            ->limit(10)
+            ->get();
 
         $tanggal_awal = date('Y-m-01');
         $tanggal_akhir = date('Y-m-d');
@@ -32,11 +45,11 @@ class DashboardController extends Controller
         while (strtotime($tanggal_awal) <= strtotime($tanggal_akhir)) {
             $data_tanggal[] = (int) substr($tanggal_awal, 8, 2);
 
-            $total_penjualan = Penjualan::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('payment');
-            $total_pembelian = Pembelian::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('payment');
+            $total_penjualan = Invoice::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('grand_total');
+            // $total_pembelian = Pembelian::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('payment');
             $total_pengeluaran = Pengeluaran::where('created_at', 'LIKE', "%$tanggal_awal%")->sum('amount');
 
-            $pendapatan = $total_penjualan - $total_pembelian - $total_pengeluaran;
+            $pendapatan = $total_penjualan - $total_pengeluaran;
             $data_pendapatan[] += $pendapatan;
 
             $tanggal_awal = date('Y-m-d', strtotime("+1 day", strtotime($tanggal_awal)));
@@ -45,7 +58,7 @@ class DashboardController extends Controller
         $tanggal_awal = date('Y-m-01');
 
         if (auth()->user()->access_level == 1) {
-            return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan'));
+            return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan', 'total_invoice', 'top_selling_products'));
         } else {
             return view('kasir.dashboard');
         }

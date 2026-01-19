@@ -65,6 +65,13 @@
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <label for="minimum_stock" class="col-lg-2 col-lg-offset-1 control-label">Low Stock Warning</label>
+                        <div class="col-lg-6">
+                            <input type="number" name="minimum_stock" id="minimum_stock" class="form-control" required value="0">
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-flat btn-success"><i class="fa fa-save"></i> Save</button>

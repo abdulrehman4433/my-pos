@@ -89,7 +89,8 @@ class RentalController extends Controller
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button"
                                 onclick="editForm(\'' . route('rental.update', $rental->rental_id) . '\')"
-                                class="btn btn-warning"
+                                class="btn btn-xs btn-primary btn-flat"
+                                style="margin-right: 5px;"
                                 title="Edit">
                             <i class="fa fa-edit"></i>
                         </button>
@@ -99,7 +100,7 @@ class RentalController extends Controller
                                     \'' . route('rental.destroy', $rental->rental_id) . '\',
                                     \'' . addslashes($rental->rental_product) . '\'
                                 )"
-                                class="btn btn-danger"
+                                class="btn btn-xs btn-danger btn-flat"
                                 title="Delete">
                             <i class="fa fa-trash"></i>
                         </button>

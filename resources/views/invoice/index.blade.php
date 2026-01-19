@@ -32,6 +32,7 @@
                             <th>Discount</th>
                             <th>Grand Total</th>
                             <th>Paid</th>
+                            <th>Remaining</th>
                             <th>Status</th>
                             <th width="12%"><i class="fa fa-cog"></i></th>
                         </tr>
@@ -67,6 +68,7 @@
                 { data: 'discount_amount' },
                 { data: 'grand_total' },
                 { data: 'payment_received' },
+                { data: 'remaining_amount' },
                 { data: 'payment_status', orderable: false, searchable: false },
                 { data: 'action', orderable: false, searchable: false },
             ]
@@ -352,6 +354,20 @@
         const discount = $(this).find(':selected').data('discount');
 
         $('#discount_amount').val(discount ?? 0);
+    });
+
+    $(document).ready(function() {
+        $(document).on('change', '#payment_status', function () {
+            const status = $(this).val();
+            const $receivedAmountGroup = $('#received_amount_group');
+
+            if (status === 'partial') {
+                $receivedAmountGroup.show();
+            } else {
+                $receivedAmountGroup.hide();
+                $('input[name="received_amount"]').val(0);
+            }
+        });
     });
 
 </script>

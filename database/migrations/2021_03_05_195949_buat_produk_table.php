@@ -18,6 +18,7 @@ class BuatProdukTable extends Migration
             $table->tinyInteger('discount')->default(0);
             $table->integer('selling_price');
             $table->integer('stock');
+            $table->integer('minimum_stock')->default(0);
             $table->timestamps();
         });
     }

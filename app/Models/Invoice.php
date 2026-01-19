@@ -20,6 +20,10 @@ class Invoice extends Model
         'grand_total',
         'payment_received',
         'payment_status',
+        'received_amount',
+        'remaining_amount',
+        'returned_amount',
+        'return_status',
         'created_by',
         'updated_by',
     ];
@@ -45,5 +49,9 @@ class Invoice extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+    public function transactionReturns()
+    {
+        return $this->hasMany(TransactionReturn::class);
     }
 }

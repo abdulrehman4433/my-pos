@@ -65,7 +65,8 @@ class MaintenanceController extends Controller
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button"
                                 onclick="editForm(\'' . route('maintenance.update', $maintenance->maintenance_id) . '\')"
-                                class="btn btn-warning"
+                                class="btn btn-xs btn-primary btn-flat"
+                                style="margin-right: 5px;"
                                 title="Edit">
                             <i class="fa fa-edit"></i>
                         </button>
@@ -75,7 +76,7 @@ class MaintenanceController extends Controller
                                     \'' . route('maintenance.destroy', $maintenance->maintenance_id) . '\',
                                     \'' . addslashes($maintenance->maintenance_name) . '\'
                                 )"
-                                class="btn btn-danger"
+                                class="btn btn-xs btn-danger btn-flat"
                                 title="Delete">
                             <i class="fa fa-trash"></i>
                         </button>

@@ -15,10 +15,14 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('invoice_id')->constrained('invoices')->cascadeOnDelete();
+            $table->unsignedBigInteger('item_id');
             $table->string('item_name');
             $table->decimal('per_item_price', 10, 2);
             $table->integer('quantity');
             $table->decimal('total_price', 10, 2);
+            
+            $table->decimal('returned_amount', 15, 2)->default(0);
+            $table->enum('return_status', ['none', 'partial', 'full'])->default('none');
 
             $table->timestamps();
         });

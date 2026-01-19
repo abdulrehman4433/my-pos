@@ -132,12 +132,20 @@
                     <div class="form-group row">
                         <label class="col-lg-3 control-label">Payment Status</label>
                         <div class="col-lg-7">
-                            <select name="payment_status" class="form-control" required>
+                            <select name="payment_status" id="payment_status" class="form-control" required>
                                 <option value="">-- Select Status --</option>
                                 <option value="paid">Paid</option>
                                 <option value="partial">Partial</option>
                                 <option value="unpaid">Unpaid</option>
                             </select>
+                        </div>
+                    </div>
+
+                    {{-- Received Amount --}}
+                    <div class="form-group row" id="received_amount_group" style="display: none;">
+                        <label class="col-lg-3 control-label">Received Amount</label>
+                        <div class="col-lg-7">
+                            <input type="number" value="0" name="received_amount" class="form-control">
                         </div>
                     </div>
 
@@ -147,11 +155,11 @@
                             <table class="table table-bordered" id="products_table">
                                 <thead>
                                     <tr>
-                                        <th>Product</th>
-                                        <th width="120">Unit Price</th>
-                                        <th width="100">Qty</th>
-                                        <th width="120">Total</th>
-                                        <th width="60">Action</th>
+                                        <th width="300">Product</th>
+                                        <th width="180">Unit Price</th>
+                                        <th width="180">Qty</th>
+                                        <th width="180">Total</th>
+                                        <th width="180">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>

@@ -126,9 +126,82 @@
 
     <!-- visit "codeastro" for more projects! -->
 </div>
+
+<div class="row">
+    <div class="col-lg-4 col-xs-6">
+        <!-- small box -->
+        <div class="small-box bg-primary">
+            <div class="inner">
+                @php
+                    $totalCashPaid = $total_invoice
+                    ->where('payment_received', 'cash')
+                    ->where('payment_status', 'paid')
+                    ->sum(function ($invoice) {
+                        return (float) $invoice->grand_total;
+                    });
+                @endphp
+                <h3>{{ $totalCashPaid }}</h3>
+
+                <p>Total Cash Amount Reveiced</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-dollar"></i>
+            </div>
+            <a href="#" class="small-box-footer">View <i class="fa fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <!-- ./col -->
+
+    <div class="col-lg-4 col-xs-6">
+        <!-- small box -->
+        <div class="small-box bg-purple">
+            <div class="inner">
+                @php
+                    $totalAcountPaid = $total_invoice
+                    ->whereNotIn('payment_received', ['cash', 'other'])
+                    ->where('payment_status', 'paid')
+                    ->sum('grand_total');
+                @endphp
+                <h3>{{ $totalAcountPaid }}</h3>
+
+                <p>Total Account Payment </p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-dollar"></i>
+            </div>
+            <a href="{{ route('pengeluaran.index') }}" class="small-box-footer">View <i class="fa fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <!-- ./col -->
+    <!-- visit "codeastro" for more projects! -->
+    <div class="col-lg-4 col-xs-6">
+        <!-- small box -->
+        <div class="small-box bg-yellow">
+            <div class="inner">
+                @php
+                    $pendingCashPaid = $total_invoice
+                    ->where('payment_status', 'partial')
+                    ->sum(function ($invoice) {
+                        return (float) $invoice->remaining_amount;
+                    });
+                @endphp
+                <h3>{{ $pendingCashPaid }}</h3>
+
+                <p>Total Pending Payment</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-dollar"></i>
+            </div>
+            <a href="{{ route('pembelian.index') }}" class="small-box-footer">View <i class="fa fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <!-- ./col -->
+
+    <!-- visit "codeastro" for more projects! -->
+</div>
 <!-- Main row -->
 <div class="row">
-    <div class="col-lg-12">
+    <div class="col-lg-6">
         <div class="box">
             <div class="box-header with-border">
                 <h3 class="box-title">Income Chart {{ tanggal_indonesia($tanggal_awal, false) }} - {{ tanggal_indonesia($tanggal_akhir, false) }}</h3>
@@ -150,9 +223,69 @@
         <!-- /.box -->
     </div>
     <!-- /.col -->
+    <div class="col-lg-6">
+    <div class="box box-primary" style="
+        min-height: 350px !important;
+        overflow-y: auto;">
+        <div class="box-header with-border">
+            <h3 class="box-title">
+                <i class="fa fa-line-chart"></i> Top Selling Products
+            </h3>
+        </div>
+
+        <div class="box-body">
+            <ul class="products-list product-list-in-box">
+                @foreach ($top_selling_products as $index => $product)
+                    <li class="item">
+                        <div class="product-info">
+                            <span class="product-title">
+                                {{-- Rank Icons --}}
+                                @if ($index == 0) 🥇
+                                @elseif ($index == 1) 🥈
+                                @elseif ($index == 2) 🥉
+                                @else #{{ $index + 1 }}
+                                @endif
+
+                                {{ $product->item_name }}
+
+                                <span class="label label-success pull-right">
+                                    {{ $product->total_quantity_sold }} sold
+                                </span>
+                            </span>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</div>
+    <!-- /.col -->
 </div>
 <!-- /.row (main row) -->
 @endsection
+@push('style')
+    .products-list .item {
+    padding: 12px 10px;
+    border-bottom: 1px solid #f4f4f4;
+    transition: background 0.3s ease;
+    }
+
+    .products-list .item:hover {
+        background: #f9f9f9;
+    }
+
+    .product-title {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .label {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 12px;
+    }
+
+@endpush
 
 @push('scripts')
 <!-- ChartJS -->

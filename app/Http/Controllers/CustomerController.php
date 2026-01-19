@@ -53,14 +53,15 @@ class CustomerController extends Controller
                     <div class="btn-group btn-group-sm">
                         <button type="button"
                             onclick="editForm(\'' . route('customer.update', $customer->id) . '\')"
-                            class="btn btn-warning"
+                            class="btn btn-xs btn-primary btn-flat"
+                            style="margin-right: 5px;"
                             title="Edit">
                             <i class="fa fa-edit"></i>
                         </button>
 
                         <button type="button"
                             onclick="deleteData(\'' . route('customer.destroy', $customer->id) . '\')"
-                            class="btn btn-danger"
+                            class="btn btn-xs btn-danger btn-flat"
                             title="Delete">
                             <i class="fa fa-trash"></i>
                         </button>

@@ -83,7 +83,8 @@ class ProjectController extends Controller
                             <button 
                                 type="button"
                                 onclick="editForm(\'' . route('project.update', $project->project_id) . '\')"
-                                class="btn btn-warning"
+                                class="btn btn-xs btn-primary btn-flat"
+                                style="margin-right: 5px;"
                                 title="Edit">
                                 <i class="fa fa-edit"></i>
                             </button>
@@ -91,7 +92,7 @@ class ProjectController extends Controller
                             <button 
                                 type="button"
                                 onclick="deleteData(\'' . route('project.destroy', $project->project_id) . '\')"
-                                class="btn btn-danger"
+                                class="btn btn-xs btn-danger btn-flat"
                                 title="Delete">
                                 <i class="fa fa-trash"></i>
                             </button>

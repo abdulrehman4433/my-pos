@@ -18,7 +18,8 @@ use App\Http\Controllers\{
     RentalController,
     MaintenanceController,
     InvoiceController,
-    CustomerController
+    CustomerController,
+    TransactionController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -123,5 +124,11 @@ Route::group(['middleware' => 'auth'], function () {
         Route::resource('invoice', InvoiceController::class);
         Route::get('invoice/view/{id}/{format?}', [InvoiceController::class, 'view'])->name('invoice.view');
         Route::get('/invoice/download/{id}', [InvoiceController::class, 'downloadPDF'])->name('invoice.download');
+
+        Route::get('/transaction-return/data', [TransactionController::class, 'data'])->name('transaction-return.data');
+        Route::get('/partial-transaction-return/data', [TransactionController::class, 'partialTransactionData'])->name('partial-transaction-return.data');
+        Route::get('/partial-transaction-invoice/{id}', [TransactionController::class, 'invoicePartialTransaction'])->name('partial-transaction-invoice');
+        Route::post('/clear-invoice-remaining-amount', [TransactionController::class, 'clearInvoiceRemainingAmount'])->name('clear-invoice-remaining-amount');
+        Route::resource('/transaction-return', TransactionController::class);
     });
 });

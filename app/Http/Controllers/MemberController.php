@@ -55,7 +55,7 @@ class MemberController extends Controller
                 return '
                 <div class="btn-group btn-group-sm">
                     <button type="button" onclick="editForm(`'. route('member.update', $member->member_id) .'`)" 
-                            class="btn btn-primary btn-flat" title="Edit">
+                            class="btn btn-xs btn-primary btn-flat" style="margin-right: 5px;" title="Edit">
                         <i class="fa fa-edit"></i>
                     </button>
                     <button type="button" onclick="deleteData(`'. route('member.destroy', $member->member_id) .'`)" 

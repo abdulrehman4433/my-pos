@@ -54,7 +54,8 @@ class SupplierController extends Controller
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" 
                                 onclick="editForm(\'' . route('supplier.update', $supplier->supplier_id) . '\')" 
-                                class="btn btn-warning" 
+                                class="btn btn-xs btn-primary btn-flat"
+                                style="margin-right: 5px;" 
                                 data-toggle="tooltip" 
                                 title="Edit">
                             <i class="fa fa-edit"></i>
@@ -62,7 +63,7 @@ class SupplierController extends Controller
                         
                         <button type="button" 
                                 onclick="deleteData(\'' . route('supplier.destroy', $supplier->supplier_id) . '\', \'' . addslashes($supplier->name) . '\')" 
-                                class="btn btn-danger" 
+                                class="btn btn-xs btn-danger btn-flat" 
                                 data-toggle="tooltip" 
                                 title="Hapus">
                             <i class="fa fa-trash"></i>

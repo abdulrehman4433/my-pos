@@ -153,14 +153,14 @@ class ProdukController extends Controller
                 <div class="btn-group btn-group-sm" role="group">
                     <button type="button" 
                             onclick="editForm(`'. route('produk.update', $produk->product_id) .'`)" 
-                            class="btn btn-outline-primary" 
+                            class="btn btn-xs btn-primary btn-flat" 
+                            style="margin-right: 5px;"
                             title="Edit">
                         <i class="fa fa-edit"></i>
                     </button>
                     <button type="button" 
                             onclick="deleteData(`'. route('produk.destroy', $produk->product_id) .'`)" 
-                            class="btn btn-outline-danger" 
-                            title="Delete">
+                            class="btn btn-xs btn-danger btn-flat" title="Delete">
                         <i class="fa fa-trash"></i>
                     </button>
                 </div>
@@ -302,7 +302,8 @@ class ProdukController extends Controller
                 'purchase_price' => $request->harga_beli,    // Map: harga_beli -> purchase_price
                 'selling_price' => $request->harga_jual,     // Map: harga_jual -> selling_price
                 'discount' => $request->diskon ?? 0,         // Map: diskon -> discount
-                'stock' => $request->stok,                   // Map: stok -> stock
+                'stock' => $request->stok,  
+                'minimum_stock' => $request->minimum_stock ?? 0,  // Map: minimum_stock -> minimum_stock
                 'branch_id' => Auth::user()->branch_id,
             ];
 

@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 
 
 use function Livewire\str;
@@ -45,6 +44,7 @@ class InvoiceController extends Controller
             $row['tax_amount'] = number_format($invoice->tax_amount, 2);
             $row['discount_amount'] = number_format($invoice->discount_amount, 2);
             $row['grand_total'] = number_format($invoice->grand_total, 2);
+            $row['remaining_amount'] = number_format($invoice->remaining_amount, 2);
             $row['payment_received'] = (string) $invoice->payment_received;
 
             // payment status label
@@ -67,16 +67,6 @@ class InvoiceController extends Controller
                     <i class="fa fa-file-pdf-o"></i>
                 </button>             
             ';
-
-            //    <button onclick="editForm(`'.route('invoice.edit', $invoice->id).'`)" 
-            //             class="btn btn-warning btn-xs">
-            //         <i class="fa fa-edit"></i>
-            //     </button>
-
-            //     <button onclick="deleteData(`'.route('invoice.destroy', $invoice->id).'`)" 
-            //             class="btn btn-danger btn-xs">
-            //         <i class="fa fa-trash"></i>
-            //     </button>
 
             
 
@@ -137,11 +127,22 @@ class InvoiceController extends Controller
         // Compute totals
         $subTotal       = (float) $request->input('sub_total', 0);
         $taxAmount      = (float) $request->input('tax_amount', 0);
-        $discountAmount = (float) $request->input('discount_amount', 0);
+        $discountRate   = (float) $request->input('discount_amount', 0); // percentage
 
-        $grandTotal = $subTotal + $taxAmount - max(0, $discountAmount);
+        // Ensure discount is between 0 and 100
+        $discountRate = min(max($discountRate, 0), 100);
 
-        return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountAmount, $grandTotal) {
+        // Calculate discount value from percentage
+        $discountValue = ($subTotal * $discountRate) / 100;
+
+        // Final grand total
+        $grandTotal = ($subTotal - $discountValue) + $taxAmount;
+
+        // Optional: never allow negative grand total
+        $grandTotal = max(0, $grandTotal);
+
+
+        return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal) {
 
             // Determine invoice resource and resource ID based on reference
             $invoiceReference = $request->input('invoice_reference');
@@ -160,10 +161,18 @@ class InvoiceController extends Controller
                 'product' => 'product',
                 'project' => 'project', 
                 'maintenance' => 'maintenance',
+                'rental' => 'rental',
+                'other' => 'other',
                 // Add other mappings as needed
             ];
             
             $invoiceResource = $resourceMapping[$invoiceReference] ?? $invoiceReference;
+            $remaining_amount = 0.00;
+            $received_amount = 0.00;
+            if($request->input('payment_status') == 'partial'){
+                $received_amount = (float) $request->input('received_amount', 0);
+                $remaining_amount = $grandTotal - $received_amount;
+            }
 
             // Create invoice
             $invoice = Invoice::create([
@@ -173,10 +182,12 @@ class InvoiceController extends Controller
                 'invoice_resource_id' => $referenceId, // Now properly null or integer
                 'sub_total'           => $subTotal,
                 'tax_amount'          => $taxAmount,
-                'discount_amount'     => $discountAmount,
+                'discount_amount'     => $discountRate,
                 'grand_total'         => $grandTotal,
                 'payment_received'    => $request->input('payment_method'),
                 'payment_status'      => $request->input('payment_status'),
+                'received_amount'     => $received_amount,
+                'remaining_amount'    => $remaining_amount,
                 'created_by'          => auth()->id(),
                 'updated_by'          => auth()->id(),
             ]);
@@ -206,6 +217,7 @@ class InvoiceController extends Controller
 
                         InvoiceItem::create([
                             'invoice_id'      => $invoice->id,
+                            'item_id'        => $product->product_id,
                             'item_name'       => $product->product_name,
                             'per_item_price'  => $unitPrice,
                             'quantity'        => $qty,

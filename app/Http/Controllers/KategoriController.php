@@ -36,7 +36,8 @@ class KategoriController extends Controller
                 return '
                     <div class="btn-group">
                         <button onclick="editForm(`'.route('kategori.update', $category->category_id).'`)"
-                            class="btn btn-xs btn-primary btn-flat" title="Edit">
+                            class="btn btn-xs btn-primary btn-flat" title="Edit"
+                            style="margin-right: 5px;">
                             <i class="fa fa-pencil"></i>
                         </button>
 

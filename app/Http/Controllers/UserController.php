@@ -26,8 +26,8 @@ class UserController extends Controller
             ->addColumn('aksi', function ($user) {
                 return '
                 <div class="btn-group">
-                    <button type="button" onclick="editForm(`'. route('user.update', $user->id) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-pencil"></i></button>
-                    <button type="button" onclick="deleteData(`'. route('user.destroy', $user->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+                    <button type="button" onclick="editForm(`'. route('user.update', $user->id) .'`)" class="btn btn-xs btn-primary btn-flat" style="margin-right: 5px;" title="Edit"><i class="fa fa-pencil"></i></button>
+                    <button type="button" onclick="deleteData(`'. route('user.destroy', $user->id) .'`)" class="btn btn-xs btn-danger btn-flat" title="Delete"><i class="fa fa-trash"></i></button>
                 </div>
                 ';
             })
