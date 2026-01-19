@@ -9,8 +9,9 @@ return new class extends Migration
     public function up()
     {
         Schema::create('rentals', function (Blueprint $table) {
-            $table->id('rental_id'); // Note: Fixed spelling from 'rentel' to 'rental'
+            $table->id('rental_id');
             $table->string('rental_code')->unique(); 
+            $table->integer('rental_product_id');
             $table->string('rental_product');
             $table->string('rental_person');
             $table->string('rental_person_phone');

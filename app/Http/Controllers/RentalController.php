@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rental;
+use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -119,7 +120,6 @@ class RentalController extends Controller
         }
     }
 
-
     /**
      * Show the form for creating a new resource.
      */
@@ -133,90 +133,81 @@ class RentalController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate request
         $validator = Validator::make($request->all(), [
-            'rental_product' => 'required|string|max:255',
-            'rental_person' => 'required|string|max:255',
-            'rental_person_phone' => 'required|string|max:20',
+            'rental_product'        => 'required|integer|exists:products,product_id',
+            'rental_person'         => 'required|string|max:255',
+            'rental_person_phone'   => 'required|string|max:20',
             'rental_person_address' => 'nullable|string|max:500',
-            'rental_price' => 'required|numeric|min:0',
-            'rental_duration' => 'required|string|max:50',
-            'rental_start_date' => 'required|date',
-            'rental_end_date' => 'required|date|after_or_equal:rental_start_date',
-            'rental_status' => 'required|string|in:pending,ongoing,completed,overdue',
+            'rental_price'          => 'required|numeric|min:0',
+            'rental_duration'       => 'required|string|max:50',
+            'rental_start_date'     => 'required|date',
+            'rental_end_date'       => 'required|date|after_or_equal:rental_start_date',
+            'rental_status'         => 'required|in:pending,ongoing,completed,overdue',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'errors' => $validator->errors(),
-                'message' => 'Validation failed'
+                'status'  => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         DB::beginTransaction();
-        try {
-            // Check for duplicate phone (optional)
-            $existing = Rental::where('rental_person_phone', $request->rental_person_phone)->first();
-            if ($existing) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Rental with this phone number already exists.',
-                    'data' => [
-                        'rental_id' => $existing->rental_id,
-                        'rental_person' => $existing->rental_person
-                    ]
-                ], 409);
-            }
 
-            // Auto-generate rental_code: RT-YYYYMMDD-XXX
-            $today = date('Ymd');
-            $lastCode = Rental::whereDate('created_at', date('Y-m-d'))
-                ->orderBy('rental_id', 'desc')
+        try {
+            // 🔹 Get product using ORM
+            $product = Produk::where('product_id', $request->rental_product)->firstOrFail();
+
+            // 🔹 Generate rental code (RT-YYYYMMDD-XXX)
+            $today = now()->format('Ymd');
+
+            $lastCode = Rental::whereDate('created_at', now()->toDateString())
+                ->orderByDesc('rental_id')
                 ->value('rental_code');
 
             $number = $lastCode ? ((int) substr($lastCode, -3) + 1) : 1;
+
             $rentalCode = 'RT-' . $today . '-' . str_pad($number, 3, '0', STR_PAD_LEFT);
 
-            // Prepare data for insert
-            $data = $request->only([
-                'rental_product',
-                'rental_person',
-                'rental_person_phone',
-                'rental_person_address',
-                'rental_price',
-                'rental_duration',
-                'rental_start_date',
-                'rental_end_date',
-                'rental_status',
+            // 🔹 Store data
+            $rental = Rental::create([
+                'rental_code'        => $rentalCode,
+                'rental_product_id'  => $product->product_id,
+                'rental_product'     => $product->product_name, // adjust column name if needed
+                'rental_person'      => $request->rental_person,
+                'rental_person_phone'=> $request->rental_person_phone,
+                'rental_person_address' => $request->rental_person_address,
+                'rental_price'       => $request->rental_price,
+                'rental_duration'    => $request->rental_duration,
+                'rental_start_date'  => $request->rental_start_date,
+                'rental_end_date'    => $request->rental_end_date,
+                'rental_status'      => $request->rental_status,
+                'created_by'         => Auth::id(),
+                'updated_by'         => Auth::id(),
             ]);
-            $data['rental_code'] = $rentalCode;
-            $data['created_by'] = Auth::id();
-            $data['updated_by'] = Auth::id();
-
-            // Create rental
-            $rental = Rental::create($data);
 
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'status'  => true,
                 'message' => 'Rental saved successfully.',
-                'data' => $rental
+                'data'    => $rental,
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
 
-            \Log::error('Error saving rental: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'request' => $request->all()
+            \Log::error('Error saving rental', [
+                'error'   => $e->getMessage(),
+                'user_id'=> Auth::id(),
+                'request'=> $request->all(),
             ]);
 
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'System error occurred.',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'error'   => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -245,8 +236,71 @@ class RentalController extends Controller
     public function update(Request $request, $id)
     {
         $rental = Rental::findOrFail($id);
-        $rental->update($request->all());
-        return response()->json($rental);
+
+        $validator = Validator::make($request->all(), [
+            'rental_product'        => 'required|integer|exists:products,product_id',
+            'rental_person'         => 'required|string|max:255',
+            'rental_person_phone'   => 'required|string|max:20',
+            'rental_person_address' => 'nullable|string|max:500',
+            'rental_price'          => 'required|numeric|min:0',
+            'rental_duration'       => 'required|string|max:50',
+            'rental_start_date'     => 'required|date',
+            'rental_end_date'       => 'required|date|after_or_equal:rental_start_date',
+            'rental_status'         => 'required|in:pending,ongoing,completed,overdue',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // 🔹 Fetch product via ORM
+            $product = Produk::findOrFail($request->rental_product);
+
+            // 🔹 Update rental safely
+            $rental->update([
+                'rental_product_id'   => $product->product_id,
+                'rental_product'      => $product->rental_product,
+                'rental_person'       => $request->rental_person,
+                'rental_person_phone' => $request->rental_person_phone,
+                'rental_person_address' => $request->rental_person_address,
+                'rental_price'        => $request->rental_price,
+                'rental_duration'     => $request->rental_duration,
+                'rental_start_date'   => $request->rental_start_date,
+                'rental_end_date'     => $request->rental_end_date,
+                'rental_status'       => $request->rental_status,
+                'updated_by'          => Auth::id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Rental updated successfully.',
+                'data'    => $rental,
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Error updating rental', [
+                'rental_id' => $id,
+                'error'     => $e->getMessage(),
+                'user_id'   => Auth::id(),
+            ]);
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'System error occurred.',
+                'error'   => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
     }
 
     /**

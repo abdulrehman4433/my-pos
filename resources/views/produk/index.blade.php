@@ -35,7 +35,6 @@
                             <th>Brand</th>
                             <th>Purchase Price</th>
                             <th>Selling Price</th>
-                            <th>Discount</th>
                             <th>Stock</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
                         </thead>
@@ -71,7 +70,6 @@
                 {data: 'brand'},                  // Changed from 'merk'
                 {data: 'purchase_price'},         // Changed from 'harga_beli'
                 {data: 'selling_price'},          // Changed from 'harga_jual'
-                {data: 'discount'},               // Changed from 'diskon'
                 {data: 'stock'},                  // Changed from 'stok'
                 {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi'
             ]
@@ -99,7 +97,6 @@
     function addForm(url) {
         $('#modal-form').modal('show');
         $('#modal-form .modal-title').text('Add Product');
-
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
@@ -128,6 +125,7 @@
                 $('#modal-form [name=harga_jual]').val(product.selling_price);
                 $('#modal-form [name=diskon]').val(product.discount);
                 $('#modal-form [name=stok]').val(product.stock);
+                $('#modal-form [name=minimum_stock]').val(product.minimum_stock);
             } else {
                 alert('Invalid response format');
             }

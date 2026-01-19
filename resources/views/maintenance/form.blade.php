@@ -72,9 +72,10 @@
                         <label class="col-lg-2 col-lg-offset-1 control-label">Active</label>
                         <div class="col-lg-6">
                             <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" name="is_active" id="is_active" value="1" checked> Yes
-                                </label>
+                                <select name="is_active" id="is_active" class="form-control">
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
                             </div>
                         </div>
                     </div>

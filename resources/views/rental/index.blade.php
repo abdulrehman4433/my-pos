@@ -84,11 +84,32 @@
     function addForm(url) {
         $('#modal-form').modal('show');
         $('#modal-form .modal-title').text('Add Rental');
-
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
         $('#modal-form [name=rental_product]').focus();
+        const get_url = '{{ route('invoice.product') }}';
+        $.get(get_url)
+        .done((response) => {
+            let $select = $('#rental_product');
+            $select.empty(); // clear old options
+
+            $select.append('<option value="">-- Select Product --</option>');
+
+            response.forEach(item => {
+                $select.append(`
+                    <option 
+                        value="${item.product_id}"
+                        data-price="${item.selling_price}"
+                        data-stock="${item.stock}">
+                        ${item.product_name}
+                    </option>
+                `);
+            });
+        })
+        .fail(() => {
+            alert('Unable to display data');
+        });
     }
 
     function editForm(url) {
@@ -99,9 +120,36 @@
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
 
+        const product_url = '{{ route('invoice.product') }}';
+
+        // 1️⃣ Get rental data
         $.get(url)
             .done((response) => {
-                $('#modal-form [name=rental_product]').val(response.rental_product);
+
+                // 2️⃣ Load product list
+                $.get(product_url)
+                    .done((products) => {
+
+                        let $select = $('#rental_product');
+                        $select.empty();
+                        $select.append('<option value="">-- Select Product --</option>');
+
+                        products.forEach(item => {
+                            $select.append(`
+                                <option 
+                                    value="${item.product_id}"
+                                    data-price="${item.selling_price}"
+                                    data-stock="${item.stock}">
+                                    ${item.product_name}
+                                </option>
+                            `);
+                        });
+
+                        // 3️⃣ Select saved product
+                        $select.val(response.rental_product_id);
+                    });
+
+                // 4️⃣ Fill other fields
                 $('#modal-form [name=rental_person]').val(response.rental_person);
                 $('#modal-form [name=rental_person_phone]').val(response.rental_person_phone);
                 $('#modal-form [name=rental_person_address]').val(response.rental_person_address);

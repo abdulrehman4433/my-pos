@@ -31,6 +31,7 @@ class Rental extends Model
      */
     protected $fillable = [
         'rental_code',
+        'rental_product_id',
         'rental_product',
         'rental_person',
         'rental_person_phone',
@@ -129,5 +130,10 @@ class Rental extends Model
         }
         
         return $this->rental_price;
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Produk::class, 'rental_product_id');
     }
 }

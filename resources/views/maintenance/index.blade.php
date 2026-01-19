@@ -107,7 +107,8 @@
                 $('#modal-form [name=maintenance_price]').val(response.maintenance_price);
                 $('#modal-form [name=maintenance_duration]').val(response.maintenance_duration);
                 $('#modal-form [name=maintenance_details]').val(response.maintenance_details);
-                $('#modal-form [name=is_active]').prop('checked', response.is_active);
+                // $('#modal-form [name=is_active]').prop('checked', response.is_active);
+                $('#modal-form [name=is_active]').val(response.is_active);
             })
             .fail((errors) => {
                 alert('Unable to display data');

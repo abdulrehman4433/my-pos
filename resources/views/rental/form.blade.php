@@ -17,7 +17,9 @@
                     <div class="form-group row">
                         <label for="rental_product" class="col-lg-2 col-lg-offset-1 control-label">Product</label>
                         <div class="col-lg-6">
-                            <input type="text" name="rental_product" id="rental_product" class="form-control" required autofocus>
+                            <select name="rental_product" id="rental_product" class="form-control" required>
+                                <option value="">-- Select Product --</option>
+                            </select>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>

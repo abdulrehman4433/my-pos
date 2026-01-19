@@ -66,7 +66,7 @@ class ProdukController extends Controller
                 return $produk->category_name ?? '<span class="text-muted">N/A</span>';
             })
             ->addColumn('purchase_price', function ($produk) {
-                return 'Rp ' . number_format($produk->purchase_price, 0, ',', '.');
+                return 'Rp ' . $produk->purchase_price;
             })
             ->addColumn('selling_price', function ($produk) {
                 $sellingPrice = $produk->selling_price;
@@ -77,25 +77,26 @@ class ProdukController extends Controller
                     return '
                         <div>
                             <div class="text-decoration-line-through text-muted small">
-                                Rp ' . number_format($sellingPrice, 0, ',', '.') . '
+                                Rp ' . $sellingPrice . '
                             </div>
                             <div class="fw-bold text-danger">
-                                Rp ' . number_format($priceAfterDiscount, 0, ',', '.') . '
+                                Rp ' .$priceAfterDiscount . '
                             </div>
                             <small class="badge bg-warning">-' . $discount . '%</small>
                         </div>
                     ';
                 }
                 
-                return 'Rp ' . number_format($sellingPrice, 0, ',', '.');
+                return 'Rp ' . $sellingPrice;
             })
             ->addColumn('stock', function ($produk) {
                 $stock = $produk->stock;
+                $low_stock_threshold = $produk->minimum_stock;
                 
                 if ($stock <= 0) {
                     $badgeClass = 'badge-danger';
                     $status = 'Out of Stock';
-                } elseif ($stock <= 10) {
+                } elseif ($stock <= $low_stock_threshold) {
                     $badgeClass = 'badge-warning';
                     $status = 'Low Stock';
                 } else {
@@ -105,7 +106,7 @@ class ProdukController extends Controller
                 
                 return '
                     <div class="d-flex flex-column">
-                        <span class="badge ' . $badgeClass . ' mb-1">' . number_format($stock, 0, ',', '.') . '</span>
+                        <span class="badge ' . $badgeClass . ' mb-1">' . $stock . '</span>
                         <small class="text-muted">' . $status . '</small>
                     </div>
                 ';
@@ -226,6 +227,7 @@ class ProdukController extends Controller
             'harga_jual' => 'required|numeric|min:0',
             'diskon' => 'nullable|numeric|min:0|max:100',
             'stok' => 'required|integer|min:0',
+            'minimum_stock' => 'nullable|integer|min:0',
         ], [
             'nama_produk.required' => 'Product name is required',
             'nama_produk.string' => 'Product name must be text',
@@ -397,6 +399,7 @@ class ProdukController extends Controller
             'harga_jual' => 'required|numeric|min:0',
             'diskon' => 'nullable|numeric|min:0|max:100',
             'stok' => 'required|integer|min:0',
+            'minimum_stock' => 'nullable|integer|min:0',
         ], [
             'nama_produk.required' => 'Product name is required',
             'nama_produk.string' => 'Product name must be text',
@@ -473,7 +476,8 @@ class ProdukController extends Controller
                 'purchase_price' => $request->harga_beli,    // Map: harga_beli -> purchase_price
                 'selling_price' => $request->harga_jual,     // Map: harga_jual -> selling_price
                 'discount' => $request->diskon ?? 0,         // Map: diskon -> discount
-                'stock' => $request->stok,                   // Map: stok -> stock
+                'stock' => $request->stok, 
+                'minimum_stock' => $request->minimum_stock,   // Map: minimum_stock -> minimum_stock
             ];
 
             $produk->update($updateData);
