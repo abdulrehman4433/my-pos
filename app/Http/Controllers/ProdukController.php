@@ -303,6 +303,7 @@ class ProdukController extends Controller
                 'brand' => $request->merk,                   // Map: merk -> brand
                 'purchase_price' => $request->harga_beli,    // Map: harga_beli -> purchase_price
                 'selling_price' => $request->harga_jual,     // Map: harga_jual -> selling_price
+                'per_item_price' => (int) ($request->harga_jual / $request->stok),   // Map: harga_jual -> per_item_price
                 'discount' => $request->diskon ?? 0,         // Map: diskon -> discount
                 'stock' => $request->stok,  
                 'minimum_stock' => $request->minimum_stock ?? 0,  // Map: minimum_stock -> minimum_stock

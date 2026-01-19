@@ -129,22 +129,18 @@
                 <td>Total</td>
                 <td>Rs {{ number_format($invoice->grand_total, 0) }}</td>
             </tr>
+            @if($invoice->payment_status === 'partial')
             <tr>
                 <td>Received</td>
-                <td>Rs {{ number_format($invoice->received ?? 0, 0) }}</td>
+                <td>Rs {{ $invoice->received_amount ?? 0 }}</td>
             </tr>
             <tr>
-                <td>Balance</td>
-                <td>Rs {{ number_format($invoice->balance ?? ($invoice->grand_total - ($invoice->received ?? 0)), 0) }}</td>
-            </tr>
-            @if(isset($invoice->previous_balance) && $invoice->previous_balance > 0)
-            <tr>
-                <td>Previous Balance</td>
-                <td>Rs {{ number_format($invoice->previous_balance, 0) }}</td>
+                <td>Remaining</td>
+                <td>Rs {{ $invoice->remaining_amount ?? 0 }}</td>
             </tr>
             @endif
             <tr>
-                <td>Current Balance</td>
+                <td>Total Amount</td>
                 <td>Rs {{ number_format($invoice->current_balance ?? (($invoice->balance ?? $invoice->grand_total) + ($invoice->previous_balance ?? 0)), 0) }}</td>
             </tr>
         </table>
