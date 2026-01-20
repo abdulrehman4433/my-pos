@@ -65,8 +65,11 @@ class ProdukController extends Controller
             ->addColumn('category_name', function ($produk) {
                 return $produk->category_name ?? '<span class="text-muted">N/A</span>';
             })
+            ->addColumn('per_item_price', function ($produk) {
+                return 'RS ' . $produk->per_item_price;
+            })
             ->addColumn('purchase_price', function ($produk) {
-                return 'Rp ' . $produk->purchase_price;
+                return 'RS ' . $produk->purchase_price;
             })
             ->addColumn('selling_price', function ($produk) {
                 $sellingPrice = $produk->selling_price;
@@ -77,17 +80,17 @@ class ProdukController extends Controller
                     return '
                         <div>
                             <div class="text-decoration-line-through text-muted small">
-                                Rp ' . $sellingPrice . '
+                                RS ' . $sellingPrice . '
                             </div>
                             <div class="fw-bold text-danger">
-                                Rp ' .$priceAfterDiscount . '
+                                RS ' .$priceAfterDiscount . '
                             </div>
                             <small class="badge bg-warning">-' . $discount . '%</small>
                         </div>
                     ';
                 }
                 
-                return 'Rp ' . $sellingPrice;
+                return 'RS ' . $sellingPrice;
             })
             ->addColumn('stock', function ($produk) {
                 $stock = $produk->stock;
@@ -132,7 +135,7 @@ class ProdukController extends Controller
                 return '
                     <div>
                         <div class="' . $profitClass . ' fw-semibold">
-                            ' . $profitIcon . ' Rp ' . number_format(abs($profit), 0, ',', '.') . '
+                            ' . $profitIcon . ' RS ' . number_format(abs($profit), 0, ',', '.') . '
                         </div>
                         <small class="' . $profitClass . '">
                             ' . number_format($percentage, 1) . '%

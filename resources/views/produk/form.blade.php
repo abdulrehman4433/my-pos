@@ -51,6 +51,13 @@
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <label for="harga_jual" class="col-lg-2 col-lg-offset-1 control-label">Per Item Price</label>
+                        <div class="col-lg-6">
+                            <input type="number" name="per_item_price" id="per_item_price" class="form-control" required readonly>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
                     <div class="form-group row" style="display: none;">
                         <label for="diskon" class="col-lg-2 col-lg-offset-1 control-label">Discount</label>
                         <div class="col-lg-6">

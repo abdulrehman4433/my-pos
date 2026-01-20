@@ -28,15 +28,16 @@
                             <th width="5%">
                                 <input type="checkbox" name="select_all" id="select_all">
                             </th>
-                            <th width="5%">#</th>
+                            {{-- <th width="5%">#</th> --}}
                             <th>Code</th>
                             <th>Name</th>
                             <th>Category</th>
                             <th>Brand</th>
                             <th>Purchase Price</th>
                             <th>Selling Price</th>
+                            <th>Per Item Price</th>
                             <th>Stock</th>
-                            <th width="15%"><i class="fa fa-cog"></i></th>
+                            <th width="10%"><i class="fa fa-cog"></i></th>
                         </thead>
                     </table>
                 </form>
@@ -63,13 +64,14 @@
             },
             columns: [
                 {data: 'select_all', searchable: false, sortable: false},
-                {data: 'DT_RowIndex', searchable: false, sortable: false},
+                // {data: 'DT_RowIndex', searchable: false, sortable: false},
                 {data: 'product_code'},           // Changed from 'kode_produk'
                 {data: 'product_name'},           // Changed from 'nama_produk'
                 {data: 'category_name'},          // Changed from 'nama_kategori'
                 {data: 'brand'},                  // Changed from 'merk'
                 {data: 'purchase_price'},         // Changed from 'harga_beli'
                 {data: 'selling_price'},          // Changed from 'harga_jual'
+                {data: 'per_item_price'},         // Changed from 'harga_per_item'
                 {data: 'stock'},                  // Changed from 'stok'
                 {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi'
             ]
@@ -123,6 +125,7 @@
                 $('#modal-form [name=merk]').val(product.brand);
                 $('#modal-form [name=harga_beli]').val(product.purchase_price);
                 $('#modal-form [name=harga_jual]').val(product.selling_price);
+                $('#modal-form [name=per_item_price]').val(product.per_item_price).attr('readonly', true);
                 $('#modal-form [name=diskon]').val(product.discount);
                 $('#modal-form [name=stok]').val(product.stock);
                 $('#modal-form [name=minimum_stock]').val(product.minimum_stock);
