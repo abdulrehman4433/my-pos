@@ -262,6 +262,11 @@
     <!-- /.col -->
 </div>
 <!-- /.row (main row) -->
+
+<!-- Main row -->
+<div class="row">
+    <div class="col-lg-6">  </div>
+</div>
 @endsection
 @push('style')
     .products-list .item {
