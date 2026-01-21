@@ -128,7 +128,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-4 col-xs-6">
+    <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <div class="small-box bg-primary">
             <div class="inner">
@@ -152,7 +152,7 @@
     </div>
     <!-- ./col -->
 
-    <div class="col-lg-4 col-xs-6">
+    <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <div class="small-box bg-purple">
             <div class="inner">
@@ -174,7 +174,7 @@
     </div>
     <!-- ./col -->
     <!-- visit "codeastro" for more projects! -->
-    <div class="col-lg-4 col-xs-6">
+    <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <div class="small-box bg-yellow">
             <div class="inner">
@@ -193,6 +193,23 @@
                 <i class="fa fa-dollar"></i>
             </div>
             <a href="{{ route('pembelian.index') }}" class="small-box-footer">View <i class="fa fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <!-- ./col -->
+    
+    <!-- visit "codeastro" for more projects! -->
+    <div class="col-lg-3 col-xs-6">
+        <!-- small box -->
+        <div class="small-box bg-olive">
+            <div class="inner">
+                <h3>{{ $totalProfit }}</h3>
+
+                <p>Total Profit</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-dollar"></i>
+            </div>
+            <a href="#" class="small-box-footer">View <i class="fa fa-arrow-circle-right"></i></a>
         </div>
     </div>
     <!-- ./col -->
@@ -265,7 +282,37 @@
 
 <!-- Main row -->
 <div class="row">
-    <div class="col-lg-6">  </div>
+    <div class="col-lg-6"> 
+    <div class="box box-primary" style="
+        min-height: 350px !important;
+        overflow-y: auto;">
+        <div class="box-header with-border">
+            <h3 class="box-title">
+                 Products go out of stock soon
+            </h3>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Stock</th>
+                        <th>Minimum Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($lowStockProducts as $product)
+                    <tr>
+                        <td>{{ $product->product_name }}</td>
+                        <td>{{ $product->stock }}</td>
+                        <td>{{ $product->minimum_stock }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
 </div>
 @endsection
 @push('style')

@@ -27,6 +27,7 @@ class DashboardController extends Controller
         $total_invoice = Invoice::get();
         $pengeluaran = Pengeluaran::sum('amount');
         $pembelian = Produk::sum('purchase_price');
+        $lowStockProducts = Produk::whereColumn('stock', '<=', 'minimum_stock')->get();
 
 
 
@@ -65,10 +66,11 @@ class DashboardController extends Controller
             )
             ->orderByDesc('invoice_profit')
             ->get();
+            $totalProfit = $profitReport->sum(function ($item) {
+                return (float) $item->invoice_profit;
+            });
 
 
-
-            // dd($profitReport);
         $top_selling_products = InvoiceItem::select(
                 'item_name',
                 DB::raw('SUM(quantity) as total_quantity_sold')
@@ -100,7 +102,7 @@ class DashboardController extends Controller
         $tanggal_awal = date('Y-m-01');
 
         if (auth()->user()->access_level == 1) {
-            return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan', 'total_invoice', 'top_selling_products', 'profitReport'));
+            return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan', 'total_invoice', 'top_selling_products', 'totalProfit', 'lowStockProducts'));
         } else {
             return view('kasir.dashboard');
         }
