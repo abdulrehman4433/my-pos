@@ -113,6 +113,7 @@
         $form[0].reset();
         $form.attr('action', url);
         $form.find('[name=_method]').val('post');
+        $('#products_table tbody').empty();
 
         // Generate & set the invoice code
         const code = generateInvoiceCode();
@@ -154,8 +155,8 @@
                         selectEl.append(`
                             <option value="${item.product_id}"
                                 data-name="${item.product_name}"
-                                data-price="${item.selling_price}">
-                                ${item.product_name} (PKR ${item.selling_price})
+                                data-price="${item.per_item_price}">
+                                ${item.product_name} (RS ${item.per_item_price})
                             </option>
                         `);
                     });

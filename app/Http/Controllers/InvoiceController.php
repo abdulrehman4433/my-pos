@@ -85,6 +85,7 @@ class InvoiceController extends Controller
                 'product_id' => $product->product_id,
                 'product_name' => $product->product_name,
                 'selling_price' => $product->selling_price,
+                'per_item_price' => $product->per_item_price,
                 'stock' => $product->stock,
             ];
         }

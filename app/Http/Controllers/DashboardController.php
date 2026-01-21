@@ -27,58 +27,46 @@ class DashboardController extends Controller
         $total_invoice = Invoice::get();
         $pengeluaran = Pengeluaran::sum('amount');
         $pembelian = Produk::sum('purchase_price');
+
+
+
         $profitReport = DB::table('invoice_items as ii')
-    ->join('products as p', 'ii.item_id', '=', 'p.product_id')
-    ->whereNotNull('ii.item_id')
-    ->select(
-        'p.product_id',
-        'p.product_name',
-        'p.purchase_price',
-        'p.stock',
-        
-        // Total quantity sold
-        DB::raw('SUM(ii.quantity) as total_sold_quantity'),
-        
-        // Total sales revenue
-        DB::raw('SUM(ii.quantity * ii.per_item_price) as total_sales'),
-        
-        // Calculate cost per unit (total purchase price divided by current stock + sold quantity)
-        // This assumes p.stock is CURRENT stock (after sales)
-        DB::raw('
-            CASE 
-                WHEN (p.stock + SUM(ii.quantity)) > 0 
-                THEN (p.purchase_price / (p.stock + SUM(ii.quantity)))
-                ELSE 0 
-            END as cost_per_unit
-        '),
-        
-        // Total cost: sold quantity × cost per unit
-        DB::raw('
-            SUM(ii.quantity) * 
-            CASE 
-                WHEN (p.stock + SUM(ii.quantity)) > 0 
-                THEN (p.purchase_price / (p.stock + SUM(ii.quantity)))
-                ELSE 0 
-            END as total_cost
-        '),
-        
-        // Profit: sales - cost
-        DB::raw('
-            SUM(ii.quantity * ii.per_item_price)
-            - 
-            (
-                SUM(ii.quantity) * 
-                CASE 
-                    WHEN (p.stock + SUM(ii.quantity)) > 0 
-                    THEN (p.purchase_price / (p.stock + SUM(ii.quantity)))
-                    ELSE 0 
-                END
-            ) as profit
-        ')
-    )
-    ->groupBy('p.product_id', 'p.product_name', 'p.purchase_price', 'p.stock')
-    ->orderBy('profit', 'desc')
-    ->get();
+            ->join('invoices as i', 'ii.invoice_id', '=', 'i.id')
+            ->join('products as p', 'ii.item_id', '=', 'p.product_id')
+            ->select(
+                'i.id as invoice_id',
+                'i.invoice_code',
+
+                // Total quantity of items in invoice
+                DB::raw('SUM(ii.quantity) as total_invoice_quantity'),
+
+                // Total selling price of invoice (already calculated)
+                DB::raw('SUM(ii.total_price) as invoice_total_sales'),
+
+                // Total purchase cost of invoice
+                DB::raw('
+                    SUM(
+                        ii.quantity * (p.purchase_price / NULLIF(p.stock, 0))
+                    ) as invoice_total_purchase_cost
+                '),
+
+                // Invoice profit
+                DB::raw('
+                    SUM(ii.total_price)
+                    -
+                    SUM(
+                        ii.quantity * (p.purchase_price / NULLIF(p.stock, 0))
+                    ) as invoice_profit
+                ')
+            )
+            ->groupBy(
+                'i.id',
+                'i.invoice_code'
+            )
+            ->orderByDesc('invoice_profit')
+            ->get();
+
+
 
             // dd($profitReport);
         $top_selling_products = InvoiceItem::select(
@@ -112,7 +100,7 @@ class DashboardController extends Controller
         $tanggal_awal = date('Y-m-01');
 
         if (auth()->user()->access_level == 1) {
-            return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan', 'total_invoice', 'top_selling_products', 'lowStockProducts', 'profitReport'));
+            return view('admin.dashboard', compact('kategori', 'produk', 'supplier', 'member', 'penjualan', 'pengeluaran', 'pembelian', 'tanggal_awal', 'tanggal_akhir', 'data_tanggal', 'data_pendapatan', 'total_invoice', 'top_selling_products', 'profitReport'));
         } else {
             return view('kasir.dashboard');
         }
