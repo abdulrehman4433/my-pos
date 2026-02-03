@@ -155,8 +155,8 @@
                         selectEl.append(`
                             <option value="${item.product_id}"
                                 data-name="${item.product_name}"
-                                data-price="${item.per_item_price}">
-                                ${item.product_name} (RS ${item.per_item_price})
+                                data-price="${item.selling_price}">
+                                ${item.product_name} (RS ${item.selling_price})
                             </option>
                         `);
                     });
