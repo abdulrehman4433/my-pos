@@ -268,7 +268,7 @@ class ProdukController extends Controller
             // Check if stock entry exists
             if (!$produk->stock) {
                 $produk->stock()->create([
-                    'stock' => 5,
+                    'stock' => 1,
                     'minimum_stock' => 0,
                     'created_by' => Auth::id(),
                     'updated_by' => Auth::id(),

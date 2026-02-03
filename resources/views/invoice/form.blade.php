@@ -163,6 +163,17 @@
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" style="text-align: right; font-weight: bold; padding: 10px;">
+                                            Total Amount:
+                                        </td>
+                                        <td style="font-weight: bold; padding: 10px;">
+                                            <span id="table-total">0.00</span>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>

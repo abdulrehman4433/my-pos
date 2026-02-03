@@ -124,6 +124,7 @@
     }
 
     let selectedProducts = [];
+    let productStockMap = {}; // Store product stock data
 
     function referenceChanged(select) {
         const value = select.value;
@@ -133,6 +134,7 @@
 
         subTotalInput.val(0);
         referenceContainer.empty();
+        productStockMap = {}; // Reset stock map
 
         if (value === 'product') {
 
@@ -152,11 +154,20 @@
                     selectEl.append('<option value="">Select Product</option>');
 
                     res.forEach(item => {
+                        const availableStock = item.stock ? item.stock.stock : 0;
+                        
+                        // Store stock data for validation
+                        productStockMap[item.product_id] = {
+                            available: availableStock,
+                            minimum: item.stock ? item.stock.minimum_stock : 0
+                        };
+
                         selectEl.append(`
                             <option value="${item.product_id}"
                                 data-name="${item.product_name}"
-                                data-price="${item.selling_price}">
-                                ${item.product_name} (RS ${item.selling_price})
+                                data-price="${item.selling_price}"
+                                data-stock="${availableStock}">
+                                ${item.product_name} (RS ${item.selling_price}) - Stock: ${availableStock}
                             </option>
                         `);
                     });
@@ -168,16 +179,31 @@
                         const opt = $(this).find(':selected');
                         if (!opt.val()) return;
 
+                        const productId = opt.val();
+                        const availableStock = parseInt(opt.data('stock')) || 0;
+                        const requestedQty = parseInt($('#temp_quantity').val()) || 1;
+
+                        // Validate stock availability
+                        if (requestedQty > availableStock) {
+                            alert(`Insufficient stock!\n\nProduct: ${opt.data('name')}\nAvailable: ${availableStock}\nRequested: ${requestedQty}`);
+                            $(this).val('');
+                            return;
+                        }
+
                         const product = {
-                            id: opt.val(),
+                            id: productId,
                             name: opt.data('name'),
                             price: parseFloat(opt.data('price')),
-                            qty: parseInt($('#temp_quantity').val()) || 1
+                            qty: requestedQty,
+                            availableStock: availableStock
                         };
 
                         addProductRow(product);
                         $(this).val('');
                     });
+                })
+                .fail(() => {
+                    alert('Failed to load products');
                 });
 
         } else {
@@ -185,19 +211,39 @@
             $('#sub_total_group').show();
             $('#products_table_group').hide();
             referenceGroup.hide();
-        referenceContainer.html('<input type="hidden" name="reference_id">');
-
-        $('input[name="sub_total"]').prop('readonly', false).val(0);
+            referenceContainer.html('<input type="hidden" name="reference_id">');
+            $('input[name="sub_total"]').prop('readonly', false).val(0);
             subTotalInput.prop('readonly', false);
         }
     }
 
     function addProductRow(product) {
 
+        // Check if product already exists in table
+        const existingRow = $(`#products_table tbody tr[data-id="${product.id}"]`);
+        
+        if (existingRow.length > 0) {
+            // Product exists, validate total quantity
+            const qtyInput = existingRow.find('.qty-input');
+            const currentQty = parseInt(qtyInput.val()) || 1;
+            const newQty = currentQty + product.qty;
+
+            // Validate new total doesn't exceed stock
+            if (newQty > product.availableStock) {
+                alert(`Cannot add more!\n\nProduct: ${product.name}\nAvailable Stock: ${product.availableStock}\nCurrent Qty: ${currentQty}\nRequested Add: ${product.qty}\nTotal Would Be: ${newQty}`);
+                return;
+            }
+
+            qtyInput.val(newQty);
+            qtyInput.trigger('input');
+            return;
+        }
+
+        // Product doesn't exist, create new row
         const rowTotal = product.price * product.qty;
 
         const row = `
-            <tr data-id="${product.id}">
+            <tr data-id="${product.id}" data-stock="${product.availableStock}">
                 <td>
                     ${product.name}
                     <input type="hidden" name="products[${product.id}][id]" value="${product.id}">
@@ -207,9 +253,10 @@
                     <input type="hidden" name="products[${product.id}][price]" value="${product.price}">
                 </td>
                 <td>
-                    <input type="number" min="1" value="${product.qty}"
+                    <input type="number" min="1" max="${product.availableStock}" value="${product.qty}"
                         name="products[${product.id}][qty]"
-                        class="form-control qty-input">
+                        class="form-control qty-input"
+                        data-max-stock="${product.availableStock}">
                 </td>
                 <td class="line-total">${rowTotal.toFixed(2)}</td>
                 <td>
@@ -228,12 +275,24 @@
             total += parseFloat($(this).find('.line-total').text());
         });
         $('input[name="sub_total"]').val(total.toFixed(2));
+        
+        // Update table footer total
+        $('#table-total').text(total.toFixed(2));
     }
 
     $(document).on('input', '.qty-input', function () {
         const row = $(this).closest('tr');
+        const maxStock = parseInt($(this).data('max-stock')) || 0;
+        let qty = parseInt($(this).val()) || 1;
+
+        // Enforce max stock limit
+        if (qty > maxStock) {
+            qty = maxStock;
+            $(this).val(qty);
+            alert(`Maximum available stock is ${maxStock}`);
+        }
+
         const price = parseFloat(row.find('input[name$="[price]"]').val());
-        const qty = parseInt($(this).val()) || 1;
         row.find('.line-total').text((price * qty).toFixed(2));
         updateSubTotal();
     });

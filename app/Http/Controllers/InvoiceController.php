@@ -78,14 +78,19 @@ class InvoiceController extends Controller
 
     public function ProductData()
     {
-        $products = Produk::orderBy('product_name')->get();
+        $products = Produk::with('stock')->orderBy('product_name')->get();
         $data = [];
         foreach ($products as $product) {
             $data[] = [
                 'product_id' => $product->product_id,
                 'product_name' => $product->product_name,
                 'selling_price' => $product->selling_price,
-                'stock' => $product->stock,
+                'stock' => $product->stock ? [
+                    'id' => $product->stock->id,
+                    'product_id' => $product->stock->product_id,
+                    'stock' => $product->stock->stock,
+                    'minimum_stock' => $product->stock->minimum_stock,
+                ] : null,
             ];
         }
         return response()->json($data);
@@ -104,151 +109,6 @@ class InvoiceController extends Controller
      * Store a newly created resource in storage.
      */
     
-    // public function store(Request $request)
-    // {
-    //     // Base validation
-    //     $request->validate([
-    //         'invoice_code'       => ['required', 'string', 'max:255'],
-    //         'invoice_reference'  => ['required', 'string', 'max:255'],
-    //         'sub_total'          => ['required', 'numeric', 'min:0'],
-    //         'tax_amount'         => ['nullable', 'numeric', 'min:0'],
-    //         'discount_amount'    => ['nullable', 'numeric', 'min:0'],
-    //         'payment_method'     => ['required', 'string', 'max:50'],
-    //         'payment_status'     => ['required', 'string', Rule::in(['paid','unpaid','partial'])],
-    //         // Products array - required only for product invoices
-    //         'products'           => ['nullable', 'array'],
-    //         'products.*.id'      => ['required_if:invoice_reference,product', 'integer'],
-    //         'products.*.qty'     => ['required_if:invoice_reference,product', 'integer', 'min:1'],
-    //         'products.*.price'   => ['nullable', 'numeric', 'min:0'],
-    //         // For non-product invoices
-    //         'reference_id'       => ['nullable', 'integer'], // Changed to integer
-    //     ]);
-
-    //     // Compute totals
-    //     $subTotal       = (float) $request->input('sub_total', 0);
-    //     $taxAmount      = (float) $request->input('tax_amount', 0);
-    //     $discountRate   = (float) $request->input('discount_amount', 0); // percentage
-
-    //     // Ensure discount is between 0 and 100
-    //     $discountRate = min(max($discountRate, 0), 100);
-
-    //     // Calculate discount value from percentage
-    //     $discountValue = ($subTotal * $discountRate) / 100;
-
-    //     // Final grand total
-    //     $grandTotal = ($subTotal - $discountValue) + $taxAmount;
-
-    //     // Optional: never allow negative grand total
-    //     $grandTotal = max(0, $grandTotal);
-
-
-    //     return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal) {
-
-    //         // Determine invoice resource and resource ID based on reference
-    //         $invoiceReference = $request->input('invoice_reference');
-    //         $referenceId = $request->input('reference_id');
-            
-    //         // Handle empty reference_id - set to null if empty string or not provided
-    //         if ($referenceId === '' || $referenceId === null) {
-    //             $referenceId = null;
-    //         } else {
-    //             // Convert to integer if it's a valid number
-    //             $referenceId = (int) $referenceId;
-    //         }
-            
-    //         // Map reference to resource type (you can adjust this mapping as needed)
-    //         $resourceMapping = [
-    //             'product' => 'product',
-    //             'project' => 'project', 
-    //             'maintenance' => 'maintenance',
-    //             'rental' => 'rental',
-    //             'other' => 'other',
-    //             // Add other mappings as needed
-    //         ];
-            
-    //         $invoiceResource = $resourceMapping[$invoiceReference] ?? $invoiceReference;
-    //         $remaining_amount = 0.00;
-    //         $received_amount = 0.00;
-    //         if($request->input('payment_status') == 'partial'){
-    //             $received_amount = (float) $request->input('received_amount', 0);
-    //             $remaining_amount = $grandTotal - $received_amount;
-    //         }
-
-    //         // Create invoice
-    //         $invoice = Invoice::create([
-    //             'invoice_code'        => $request->input('invoice_code'),
-    //             'invoice_reference'   => $invoiceReference,
-    //             'invoice_resource'    => $invoiceResource,
-    //             'invoice_resource_id' => $referenceId, // Now properly null or integer
-    //             'sub_total'           => $subTotal,
-    //             'tax_amount'          => $taxAmount,
-    //             'discount_amount'     => $discountRate,
-    //             'grand_total'         => $grandTotal,
-    //             'payment_received'    => $request->input('payment_method'),
-    //             'payment_status'      => $request->input('payment_status'),
-    //             'received_amount'     => $received_amount,
-    //             'remaining_amount'    => $remaining_amount,
-    //             'created_by'          => auth()->id(),
-    //             'updated_by'          => auth()->id(),
-    //         ]);
-
-    //         // IMPORTANT: For non-product invoices, ignore products array if provided
-    //         if ($invoiceReference === 'product') {
-    //             $products = $request->input('products', []);
-
-    //             if (is_array($products) && count($products) > 0) {
-    //                 foreach ($products as $single_product) {
-    //                     $productId = $single_product['id'] ?? null;
-    //                     $qty       = (int) ($single_product['qty'] ?? 0);
-    //                     $price     = (float) ($single_product['price'] ?? 0);
-
-    //                     if (!$productId || $qty < 1) {
-    //                         continue;
-    //                     }
-
-    //                     $product = Produk::find($productId);
-    //                     if (!$product) {
-    //                         continue;
-    //                     }
-
-    //                     // Use provided price or fall back to product's selling_price
-    //                     $unitPrice = $price > 0 ? $price : (float) ($product->selling_price);
-    //                     $lineTotal = $unitPrice * $qty;
-
-    //                     InvoiceItem::create([
-    //                         'invoice_id'      => $invoice->id,
-    //                         'item_id'        => $product->product_id,
-    //                         'item_name'       => $product->product_name,
-    //                         'per_item_price'  => $unitPrice,
-    //                         'quantity'        => $qty,
-    //                         'total_price'     => $lineTotal,
-    //                     ]);
-    //                 }
-    //             }
-    //         } else {
-    //             // For non-product invoices (like project, maintenance, etc.)
-    //             // Create a single invoice item with the reference as item name
-    //             $itemName = ucfirst($invoiceReference) . " Invoice";
-    //             $quantity = 1; // Default quantity for non-product invoices
-    //             $perItemPrice = $subTotal; // Use sub_total as the price
-                
-    //             InvoiceItem::create([
-    //                 'invoice_id'      => $invoice->id,
-    //                 'item_name'       => $itemName,
-    //                 'per_item_price'  => $perItemPrice,
-    //                 'quantity'        => $quantity,
-    //                 'total_price'     => $subTotal, // total_price equals sub_total for single item
-    //             ]);
-    //         }
-
-    //         return response()->json([
-    //             'success'     => true,
-    //             'message'     => 'Invoice created successfully!',
-    //             'invoice_id'  => $invoice->id,
-    //             'grand_total' => $grandTotal,
-    //         ]);
-    //     }, 3);
-    // }
     public function store(Request $request)
 {
     $request->validate([
@@ -362,7 +222,6 @@ class InvoiceController extends Controller
             /**
              * ✅ Merge duplicates into ONE row per product_id
              * Also enforce SAME price per product_id (otherwise throw).
-             * (If you want weighted avg instead, tell me.)
              */
             $merged = [];
             foreach ($lines as $idx => $l) {
@@ -380,7 +239,7 @@ class InvoiceController extends Controller
                     ];
                 }
 
-                // If same product repeated but different price -> error (prevents wrong totals)
+                // If same product repeated but different price -> error
                 if (abs($merged[$pid]['unit_price'] - $unitPrice) > 0.00001) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         "products" => "Same product_id {$pid} has different prices. Use same price or change rule to weighted average.",
@@ -408,16 +267,18 @@ class InvoiceController extends Controller
                     ]);
                 }
 
-                if ((int) $stock->stock < (int) $m['qty']) {
+                $requiredQty = (int) $m['qty'];
+                $availableQty = (int) $stock->stock;
+
+                if ($availableQty < $requiredQty) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'stock' => "Insufficient stock for product_id {$pid}. Available: {$stock->stock}, Required: {$m['qty']}",
+                        'stock' => "Insufficient stock for product_id {$pid}. Available: {$availableQty}, Required: {$requiredQty}",
                     ]);
                 }
             }
 
             /**
-             * ✅ Atomic stock decrement with protection (won’t go negative)
-             * We also update updated_by.
+             * ✅ Atomic stock decrement with proper quantity handling
              */
             $userId = auth()->id();
             foreach ($merged as $pid => $m) {
@@ -428,23 +289,24 @@ class InvoiceController extends Controller
                     ->update([
                         'stock'      => DB::raw("stock - {$qty}"),
                         'updated_by' => $userId,
+                        'updated_at' => now(),
                     ]);
 
                 if ($updated === 0) {
-                    // In case of concurrency or unexpected changes
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'stock' => "Failed to deduct stock for product_id {$pid}. Please retry.",
+                        'stock' => "Failed to deduct stock for product_id {$pid}. Stock may have changed. Please retry.",
                     ]);
                 }
             }
 
             /**
-             * ✅ Insert ONE invoice item per product_id
+             * ✅ Insert ONE invoice item per product_id with correct quantity
              */
             foreach ($merged as $pid => $m) {
                 $produk = $m['product'];
                 $qty    = (int) $m['qty'];
                 $price  = (float) $m['unit_price'];
+                $totalPrice = $qty * $price;
 
                 InvoiceItem::create([
                     'invoice_id'     => $invoice->id,
@@ -452,7 +314,7 @@ class InvoiceController extends Controller
                     'item_name'      => $produk->product_name,
                     'per_item_price' => $price,
                     'quantity'       => $qty,
-                    'total_price'    => $qty * $price,
+                    'total_price'    => $totalPrice,
                 ]);
             }
 
