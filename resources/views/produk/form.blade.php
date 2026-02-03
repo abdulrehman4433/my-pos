@@ -38,48 +38,23 @@
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="harga_beli" class="col-lg-2 col-lg-offset-1 control-label">Purchase Price</label>
+                        <label for="harga_beli" class="col-lg-2 col-lg-offset-1 control-label">Purchase Price Per Item</label>
                         <div class="col-lg-6">
                             <input type="number" name="harga_beli" id="harga_beli" class="form-control" required>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="harga_jual" class="col-lg-2 col-lg-offset-1 control-label">Selling Price</label>
+                        <label for="harga_jual" class="col-lg-2 col-lg-offset-1 control-label">Selling Price Per Item</label>
                         <div class="col-lg-6">
                             <input type="number" name="harga_jual" id="harga_jual" class="form-control" required>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label for="harga_jual" class="col-lg-2 col-lg-offset-1 control-label">Per Item Price</label>
-                        <div class="col-lg-6">
-                            <input type="number" name="per_item_price" id="per_item_price" class="form-control" required readonly>
-                            <span class="help-block with-errors"></span>
-                        </div>
-                    </div>
-                    <div class="form-group row" style="display: none;">
-                        <label for="diskon" class="col-lg-2 col-lg-offset-1 control-label">Discount</label>
-                        <div class="col-lg-6">
-                            <input type="hidden" name="diskon" id="diskon" class="form-control" value="0">
-                            <span class="help-block with-errors"></span>
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="stok" class="col-lg-2 col-lg-offset-1 control-label">Stock</label>
-                        <div class="col-lg-6">
-                            <input type="number" name="stok" id="stok" class="form-control" required value="0">
-                            <span class="help-block with-errors"></span>
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="minimum_stock" class="col-lg-2 col-lg-offset-1 control-label">Low Stock Warning</label>
-                        <div class="col-lg-6">
-                            <input type="number" name="minimum_stock" id="minimum_stock" class="form-control" required value="0">
-                            <span class="help-block with-errors"></span>
-                        </div>
-                    </div>
                 </div>
+                <input type="hidden" name="diskon" id="diskon" value="0">
+                <input type="hidden" name="stok" id="stok" value="5">
+                <input type="hidden" name="minimum_stock" id="minimum_stock" value="0">
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-flat btn-success"><i class="fa fa-save"></i> Save</button>
                     <button type="button" class="btn btn-sm btn-flat btn-danger" data-dismiss="modal"><i class="fa fa-arrow-circle-left"></i> Cancel</button>

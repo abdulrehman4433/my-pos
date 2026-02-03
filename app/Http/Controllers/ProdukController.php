@@ -32,7 +32,7 @@ class ProdukController extends Controller
      */
     public function data()
     {
-        $produk = Produk::with(['kategori'])
+        $produk = Produk::with(['kategori', 'stock'])
             ->where('products.branch_id', Auth::user()->branch_id)
             ->select([
                 'products.*',
@@ -66,40 +66,24 @@ class ProdukController extends Controller
                 return $produk->category_name ?? '<span class="text-muted">N/A</span>';
             })
             ->addColumn('per_item_price', function ($produk) {
-                return 'RS ' . $produk->per_item_price;
+                return 'RS ' . number_format($produk->per_item_price ?? 0, 0, ',', '.');
             })
             ->addColumn('purchase_price', function ($produk) {
-                return 'RS ' . $produk->purchase_price;
+                return 'RS ' . number_format($produk->purchase_price ?? 0, 0, ',', '.');
             })
             ->addColumn('selling_price', function ($produk) {
-                $sellingPrice = $produk->selling_price;
-                $discount = $produk->discount ?? 0;
-                
-                if ($discount > 0) {
-                    $priceAfterDiscount = $sellingPrice - ($sellingPrice * $discount / 100);
-                    return '
-                        <div>
-                            <div class="text-decoration-line-through text-muted small">
-                                RS ' . $sellingPrice . '
-                            </div>
-                            <div class="fw-bold text-danger">
-                                RS ' .$priceAfterDiscount . '
-                            </div>
-                            <small class="badge bg-warning">-' . $discount . '%</small>
-                        </div>
-                    ';
-                }
-                
-                return 'RS ' . $sellingPrice;
+                $sellingPrice = $produk->selling_price ?? 0;
+                return 'RS ' . number_format($sellingPrice, 0, ',', '.');
             })
             ->addColumn('stock', function ($produk) {
-                $stock = $produk->stock;
-                $low_stock_threshold = $produk->minimum_stock;
+                $stockData = $produk->stock;
+                $currentStock = $stockData ? $stockData->stock : 0;
+                $minimumStock = $stockData ? $stockData->minimum_stock : 0;
                 
-                if ($stock <= 0) {
+                if ($currentStock <= 0) {
                     $badgeClass = 'badge-danger';
                     $status = 'Out of Stock';
-                } elseif ($stock <= $low_stock_threshold) {
+                } elseif ($currentStock <= $minimumStock) {
                     $badgeClass = 'badge-warning';
                     $status = 'Low Stock';
                 } else {
@@ -109,21 +93,16 @@ class ProdukController extends Controller
                 
                 return '
                     <div class="d-flex flex-column">
-                        <span class="badge ' . $badgeClass . ' mb-1">' . $stock . '</span>
+                        <span class="badge ' . $badgeClass . ' mb-1">' . $currentStock . '</span>
                         <small class="text-muted">' . $status . '</small>
                     </div>
                 ';
             })
             ->addColumn('profit', function ($produk) {
-                $purchasePrice = $produk->purchase_price;
-                $sellingPrice = $produk->selling_price;
-                $discount = $produk->discount ?? 0;
+                $purchasePrice = $produk->purchase_price ?? 0;
+                $sellingPrice = $produk->selling_price ?? 0;
+                $profit = $sellingPrice - $purchasePrice;
                 
-                // Calculate price after discount
-                $priceAfterDiscount = $sellingPrice - ($sellingPrice * $discount / 100);
-                $profit = $priceAfterDiscount - $purchasePrice;
-                
-                // Fix: Use $purchasePrice (not $purchase_price) and prevent division by zero
                 $percentage = 0;
                 if ($purchasePrice > 0) {
                     $percentage = ($profit / $purchasePrice) * 100;
@@ -143,24 +122,22 @@ class ProdukController extends Controller
                     </div>
                 ';
             })
-            ->addColumn('discount_badge', function ($produk) {
-                $discount = $produk->discount ?? 0;
-                
-                if ($discount > 0) {
-                    return '<span class="badge bg-danger">-' . $discount . '%</span>';
-                }
-                
-                return '<span class="badge bg-secondary">No Discount</span>';
-            })
             ->addColumn('action', function ($produk) {
                 return '
                 <div class="btn-group btn-group-sm" role="group">
                     <button type="button" 
-                            onclick="editForm(`'. route('produk.update', $produk->product_id) .'`)" 
+                            onclick="editForm(`'. route('produk.show', $produk->product_id) .'`)" 
                             class="btn btn-xs btn-primary btn-flat" 
                             style="margin-right: 5px;"
                             title="Edit">
                         <i class="fa fa-edit"></i>
+                    </button>
+                    <button type="button" 
+                            onclick="updateStockForm(`'. route('produk.stock_details', $produk->product_id) .'`)" 
+                            class="btn btn-xs btn-info btn-flat" 
+                            style="margin-right: 5px;"
+                            title="Update Stock">
+                        <i class="fa fa-cube"></i>
                     </button>
                     <button type="button" 
                             onclick="deleteData(`'. route('produk.destroy', $produk->product_id) .'`)" 
@@ -185,32 +162,9 @@ class ProdukController extends Controller
                 'profit',
                 'category_name',
                 'selling_price',
-                'discount_badge',
                 'last_updated'
             ])
             ->make(true);
-    }
-
-    /**
-     * Generate product code
-     */
-    private function generateKodeProduk()
-    {
-        $lastProduk = Produk::where('branch_id', Auth::user()->branch_id)
-            ->latest('id_produk')
-            ->first();
-
-        $prefix = 'PRD';
-        $branchCode = str_pad(Auth::user()->branch_id, 2, '0', STR_PAD_LEFT);
-        
-        if ($lastProduk) {
-            $lastNumber = (int) substr($lastProduk->kode_produk, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-
-        return $prefix . $branchCode . date('Ymd') . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -301,25 +255,29 @@ class ProdukController extends Controller
             // Map Indonesian payload fields to English database columns
             $productData = [
                 'product_code' => $productCode,
-                'product_name' => $request->nama_produk,     // Map: nama_produk -> product_name
-                'category_id' => $request->id_kategori,      // Map: id_kategori -> category_id
-                'brand' => $request->merk,                   // Map: merk -> brand
-                'purchase_price' => $request->harga_beli,    // Map: harga_beli -> purchase_price
-                'selling_price' => $request->harga_jual,     // Map: harga_jual -> selling_price
-                'per_item_price' => (int) ($request->harga_jual / $request->stok),   // Map: harga_jual -> per_item_price
-                'discount' => $request->diskon ?? 0,         // Map: diskon -> discount
-                'stock' => $request->stok,  
-                'minimum_stock' => $request->minimum_stock ?? 0,  // Map: minimum_stock -> minimum_stock
+                'product_name' => $request->nama_produk,
+                'category_id' => $request->id_kategori,
+                'brand' => $request->merk,
+                'purchase_price' => $request->harga_beli,
+                'selling_price' => $request->harga_jual,
                 'branch_id' => Auth::user()->branch_id,
             ];
 
             $produk = Produk::create($productData);
 
+            // Check if stock entry exists
+            if (!$produk->stock) {
+                $produk->stock()->create([
+                    'stock' => 5,
+                    'minimum_stock' => 0,
+                    'created_by' => Auth::id(),
+                    'updated_by' => Auth::id(),
+                ]);
+            }
+
             DB::commit();
 
             return response()->json([
-                'status' => true,
-                'message' => 'Product saved successfully',
                 'data' => $produk
             ], 201);
 
@@ -327,14 +285,10 @@ class ProdukController extends Controller
             DB::rollBack();
             
             \Log::error('Error saving product: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'request' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
-                'status' => false,
-                'message' => 'System error occurred',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -733,17 +687,15 @@ class ProdukController extends Controller
     public function updateStock(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'stok' => 'required|integer|min:0',
-            'type' => 'required|in:add,subtract,set', // add, subtract, or set exact value
-            'keterangan' => 'nullable|string|max:255'
+            'stock' => 'required|integer|min:0',
+            'minimum_stock' => 'required|integer|min:0',
         ], [
-            'stok.required' => 'Stock quantity is required',
-            'stok.integer' => 'Stock must be an integer',
-            'stok.min' => 'Stock must be at least 0',
-            'type.required' => 'Adjustment type is required',
-            'type.in' => 'Invalid adjustment type',
-            'keterangan.string' => 'Note must be a string',
-            'keterangan.max' => 'Note may not be greater than 255 characters',
+            'stock.required' => 'Stock quantity is required',
+            'stock.integer' => 'Stock must be an integer',
+            'stock.min' => 'Stock must be at least 0',
+            'minimum_stock.required' => 'Minimum stock is required',
+            'minimum_stock.integer' => 'Minimum stock must be an integer',
+            'minimum_stock.min' => 'Minimum stock must be at least 0',
         ]);
 
         if ($validator->fails()) {
@@ -759,31 +711,27 @@ class ProdukController extends Controller
             $product = Produk::where('branch_id', Auth::user()->branch_id)
                 ->findOrFail($id);
 
-            $oldStock = $product->stok;
-            
-            switch ($request->type) {
-                case 'add':
-                    $product->stok += $request->stok;
-                    break;
-                case 'subtract':
-                    $product->stok = max(0, $product->stok - $request->stok);
-                    break;
-                case 'set':
-                    $product->stok = $request->stok;
-                    break;
+            // Update or create stock entry
+            if ($product->stock) {
+                $product->stock()->update([
+                    'stock' => $request->stock,
+                    'minimum_stock' => $request->minimum_stock,
+                    'updated_by' => Auth::id(),
+                ]);
+            } else {
+                $product->stock()->create([
+                    'stock' => $request->stock,
+                    'minimum_stock' => $request->minimum_stock,
+                    'created_by' => Auth::id(),
+                    'updated_by' => Auth::id(),
+                ]);
             }
-
-            $product->save();
 
             DB::commit();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Stock updated successfully',
-                'data' => [
-                    'old_stock' => $oldStock,
-                    'new_stock' => $product->stok
-                ]
+                'message' => 'Stock updated successfully'
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -804,8 +752,40 @@ class ProdukController extends Controller
 
             return response()->json([
                 'status' => false,
-                'message' => 'System error occurred'
+                'message' => 'System error occurred',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
+        }
+    }
+
+    /**
+     * Get product stock details
+     */
+    public function getStockDetails($id)
+    {
+        try {
+            $product = Produk::with('stock')
+                ->where('branch_id', Auth::user()->branch_id)
+                ->findOrFail($id);
+
+            $stockData = $product->stock;
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'product_id' => $product->product_id,
+                    'product_name' => $product->product_name,
+                    'product_code' => $product->product_code,
+                    'stock' => $stockData ? $stockData->stock : 0,
+                    'minimum_stock' => $stockData ? $stockData->minimum_stock : 0,
+                ]
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Product not found'
+            ], 404);
         }
     }
 }

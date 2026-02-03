@@ -1,3 +1,4 @@
+<!-- filepath: c:\xampp\htdocs\my-pos\resources\views\produk\index.blade.php -->
 @extends('layouts.master')
 
 @section('title')
@@ -15,9 +16,9 @@
         <div class="box">
             <div class="box-header with-border">
                 <div class="btn-group">
-                    <button onclick="addForm('{{ route('produk.store') }}')" class="btn btn-success  btn-flat"><i class="fa fa-plus-circle"></i> Add New Product</button>
-                    <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" class="btn btn-danger  btn-flat"><i class="fa fa-trash"></i> Delete</button>
-                    {{-- <button onclick="cetakBarcode('{{ route('produk.cetak_barcode') }}')" class="btn btn-warning  btn-flat"><i class="fa fa-barcode"></i> Print Barcode</button> --}}
+                    <button onclick="addForm('{{ route('produk.store') }}')" class="btn btn-success btn-flat"><i class="fa fa-plus-circle"></i> Add New Product</button>
+                    <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" class="btn btn-danger btn-flat"><i class="fa fa-trash"></i> Delete</button>
+                    {{-- <button onclick="cetakBarcode('{{ route('produk.cetak_barcode') }}')" class="btn btn-warning btn-flat"><i class="fa fa-barcode"></i> Print Barcode</button> --}}
                 </div>
             </div>
             <div class="box-body table-responsive">
@@ -28,14 +29,12 @@
                             <th width="5%">
                                 <input type="checkbox" name="select_all" id="select_all">
                             </th>
-                            {{-- <th width="5%">#</th> --}}
                             <th>Code</th>
                             <th>Name</th>
                             <th>Category</th>
                             <th>Brand</th>
                             <th>Purchase Price</th>
                             <th>Selling Price</th>
-                            <th>Per Item Price</th>
                             <th>Stock</th>
                             <th width="10%"><i class="fa fa-cog"></i></th>
                         </thead>
@@ -47,6 +46,7 @@
 </div>
 
 @includeIf('produk.form')
+@includeIf('produk.stock-form')
 @endsection
 
 @push('scripts')
@@ -64,16 +64,14 @@
             },
             columns: [
                 {data: 'select_all', searchable: false, sortable: false},
-                // {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'product_code'},           // Changed from 'kode_produk'
-                {data: 'product_name'},           // Changed from 'nama_produk'
-                {data: 'category_name'},          // Changed from 'nama_kategori'
-                {data: 'brand'},                  // Changed from 'merk'
-                {data: 'purchase_price'},         // Changed from 'harga_beli'
-                {data: 'selling_price'},          // Changed from 'harga_jual'
-                {data: 'per_item_price'},         // Changed from 'harga_per_item'
-                {data: 'stock'},                  // Changed from 'stok'
-                {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi'
+                {data: 'product_code'},
+                {data: 'product_name'},
+                {data: 'category_name'},
+                {data: 'brand'},
+                {data: 'purchase_price'},
+                {data: 'selling_price'},
+                {data: 'stock'},
+                {data: 'action', searchable: false, sortable: false},
             ]
         });
 
@@ -88,6 +86,25 @@
                         alert('Unable to save data');
                         return;
                     });
+            }
+        });
+
+        $('#modal-stock-form').validator().on('submit', function (e) {
+            if (! e.preventDefault()) {
+                $.ajax({
+                    url: $('#modal-stock-form form').attr('action'),
+                    type: 'PUT',
+                    data: $('#modal-stock-form form').serialize(),
+                    success: function(response) {
+                        if (response.status) {
+                            $('#modal-stock-form').modal('hide');
+                            table.ajax.reload();
+                        }
+                    },
+                    error: function(error) {
+                        alert('Unable to update stock');
+                    }
+                });
             }
         });
 
@@ -106,39 +123,56 @@
     }
 
     function editForm(url) {
-    $('#modal-form').modal('show');
-    $('#modal-form .modal-title').text('Edit Product');
+        $('#modal-form').modal('show');
+        $('#modal-form .modal-title').text('Edit Product');
+        $('#modal-form form')[0].reset();
+        $('#modal-form form').attr('action', url);
+        $('#modal-form [name=_method]').val('put');
+        $('#modal-form [name=nama_produk]').focus();
 
-    $('#modal-form form')[0].reset();
-    $('#modal-form form').attr('action', url);
-    $('#modal-form [name=_method]').val('put');
-    $('#modal-form [name=nama_produk]').focus();
+        $.get(url)
+            .done((response) => {
+                if (response.status && response.data) {
+                    const product = response.data;
+                    
+                    $('#modal-form [name=nama_produk]').val(product.product_name);
+                    $('#modal-form [name=id_kategori]').val(product.category_id);
+                    $('#modal-form [name=merk]').val(product.brand);
+                    $('#modal-form [name=harga_beli]').val(product.purchase_price);
+                    $('#modal-form [name=harga_jual]').val(product.selling_price);
+                } else {
+                    alert('Invalid response format');
+                }
+            })
+            .fail((errors) => {
+                console.error('Error fetching product data:', errors);
+                alert('Unable to display data. Please try again.');
+                return;
+            });
+    }
 
-    $.get(url)
-        .done((response) => {
-            if (response.status && response.data) {
-                const product = response.data;
-                
-                // Set form values with the correct property names from response
-                $('#modal-form [name=nama_produk]').val(product.product_name);
-                $('#modal-form [name=id_kategori]').val(product.category_id);
-                $('#modal-form [name=merk]').val(product.brand);
-                $('#modal-form [name=harga_beli]').val(product.purchase_price);
-                $('#modal-form [name=harga_jual]').val(product.selling_price);
-                $('#modal-form [name=per_item_price]').val(product.per_item_price).attr('readonly', true);
-                $('#modal-form [name=diskon]').val(product.discount);
-                $('#modal-form [name=stok]').val(product.stock);
-                $('#modal-form [name=minimum_stock]').val(product.minimum_stock);
-            } else {
-                alert('Invalid response format');
-            }
-        })
-        .fail((errors) => {
-            console.error('Error fetching product data:', errors);
-            alert('Unable to display data. Please try again.');
-            return;
-        });
-}
+    function updateStockForm(url) {
+        $.get(url)
+            .done((response) => {
+                if (response.status && response.data) {
+                    const data = response.data;
+                    $('#product_display').val(data.product_name);
+                    $('#product_code_display').val(data.product_code);
+                    $('#stock_old').val(data.stock);
+                    $('#stock').val(data.stock);
+                    $('#minimum_stock').val(data.minimum_stock);
+                    
+                    $('#modal-stock-form form').attr('action', '{{ route('produk.update_stock', '') }}' + '/' + data.product_id);
+                    $('#modal-stock-form').modal('show');
+                } else {
+                    alert('Invalid response format');
+                }
+            })
+            .fail((errors) => {
+                console.error('Error fetching stock data:', errors);
+                alert('Unable to load stock data. Please try again.');
+            });
+    }
 
     function deleteData(url) {
         if (confirm('Are you sure you want to delete selected data?')) {
@@ -158,7 +192,7 @@
 
     function deleteSelected(url) {
         if ($('input:checked').length > 1) {
-            if (confirm('Yakin ingin menghapus data terpilih?')) {
+            if (confirm('Are you sure you want to delete selected products?')) {
                 $.post(url, $('.form-produk').serialize())
                     .done((response) => {
                         table.ajax.reload();

@@ -17,28 +17,25 @@ class Produk extends Model
     {
         return $this->belongsTo(Branch::class, 'branch_id');
     }
-    
     public function kategori()
     {
         return $this->belongsTo(Kategori::class, 'category_id', 'category_id');
     }
-    
-    /**
-     * Calculate profit
-     */
     public function getProfitAttribute()
     {
-        return $this->harga_jual - $this->harga_beli;
+        // return $this->harga_jual - $this->harga_beli;
+        return 0;
     }
-
-    /**
-     * Calculate profit percentage
-     */
     public function getProfitPercentageAttribute()
     {
-        if ($this->harga_beli > 0) {
-            return ($this->profit / $this->harga_beli) * 100;
-        }
+        // if ($this->harga_beli > 0) {
+        //     return ($this->profit / $this->harga_beli) * 100;
+        // }
         return 0;
+    }
+
+    public function stock()
+    {
+        return $this->hasOne(ProductStock::class, 'product_id', 'product_id');
     }
 }
