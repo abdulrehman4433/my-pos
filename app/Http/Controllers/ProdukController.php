@@ -66,14 +66,14 @@ class ProdukController extends Controller
                 return $produk->category_name ?? '<span class="text-muted">N/A</span>';
             })
             ->addColumn('per_item_price', function ($produk) {
-                return 'RS ' . number_format($produk->per_item_price ?? 0, 0, ',', '.');
+                return 'RS ' . $produk->per_item_price;
             })
             ->addColumn('purchase_price', function ($produk) {
-                return 'RS ' . number_format($produk->purchase_price ?? 0, 0, ',', '.');
+                return 'RS ' . $produk->purchase_price;
             })
             ->addColumn('selling_price', function ($produk) {
                 $sellingPrice = $produk->selling_price ?? 0;
-                return 'RS ' . number_format($sellingPrice, 0, ',', '.');
+                return 'RS ' . $sellingPrice;
             })
             ->addColumn('stock', function ($produk) {
                 $stockData = $produk->stock;

@@ -40,11 +40,11 @@ class InvoiceController extends Controller
             $row['no'] = $no++;
             $row['invoice_reference'] = $invoice->invoice_reference;
             $row['invoice_code'] = $invoice->invoice_code ?? 'N/A';
-            $row['sub_total'] = number_format($invoice->sub_total, 2);
-            $row['tax_amount'] = number_format($invoice->tax_amount, 2);
-            $row['discount_amount'] = number_format($invoice->discount_amount, 2);
-            $row['grand_total'] = number_format($invoice->grand_total, 2);
-            $row['remaining_amount'] = number_format($invoice->remaining_amount, 2);
+            $row['sub_total'] = $invoice->sub_total;
+            $row['tax_amount'] = $invoice->tax_amount;
+            $row['discount_amount'] = $invoice->discount_amount . '%';
+            $row['grand_total'] = $invoice->grand_total;
+            $row['remaining_amount'] = $invoice->remaining_amount;
             $row['payment_received'] = (string) $invoice->payment_received;
 
             // payment status label

@@ -291,18 +291,18 @@ class TransactionController extends Controller
         $request->validate([
             'invoice_id'       => 'required|exists:invoices,id',
             'received_amount'  => 'required',
+            'remaining_amount' => 'required',
         ]);
 
         DB::transaction(function () use ($request) {
 
             $invoice = Invoice::lockForUpdate()->findOrFail($request->invoice_id);
 
-            $receivedAmount   = (float) str_replace(',', '', $request->received_amount);
             $currentReceived  = (float) $invoice->received_amount;
             $currentRemaining = (float) $invoice->remaining_amount;
 
-            $invoice->received_amount  = $currentReceived + $receivedAmount;
-            $invoice->remaining_amount = $currentRemaining - $receivedAmount;
+            $invoice->received_amount  = $currentReceived + $currentRemaining;
+            $invoice->remaining_amount = 0;
 
             if ($invoice->remaining_amount <= 0) {
                 $invoice->payment_status = 'paid';
