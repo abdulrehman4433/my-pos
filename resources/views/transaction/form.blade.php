@@ -48,7 +48,8 @@
                         <div class="col-lg-7">
                             <input type="text"
                                    name="invoice_grand_total"
-                                   class="form-control">
+                                   class="form-control"
+                                   readonly>
                         </div>
                     </div>
 
@@ -99,6 +100,23 @@
                                       rows="3"
                                       class="form-control"
                                       placeholder="Reason for return (optional)"></textarea>
+                        </div>
+                    </div>
+
+                    {{-- Invoice Items --}}
+                    <div class="form-group row" id="invoice-items-wrapper" style="display:none;">
+                        <label class="col-lg-4 control-label">Invoice Items</label>
+                        <div class="col-lg-7">
+                            <table class="table table-bordered table-sm" id="invoice-items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th width="80">Qty</th>
+                                        <th width="120">Return Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
                         </div>
                     </div>
 

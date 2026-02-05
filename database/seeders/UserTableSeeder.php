@@ -22,14 +22,6 @@ class UserTableSeeder extends Seeder
                 'photo' => '/img/user.png',
                 'access_level' => 1,
                 'branch_id' => 1,
-            ],
-            [
-                'name' => 'Testing User',
-                'email' => 'astro@mail.com',
-                'password' => bcrypt('123456'),
-                'photo' => '/img/user.png',
-                'access_level' => 2,
-                'branch_id' => 1,
             ]
         );
 

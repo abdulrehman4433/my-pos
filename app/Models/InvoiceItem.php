@@ -17,7 +17,7 @@ class InvoiceItem extends Model
         'quantity',
         'total_price',
         'returned_amount',
-        'return_status',
+        'return_status'
     ];
 
     public function invoice()
