@@ -41,7 +41,7 @@
                     <div class="form-group row">
                         <label for="minimum_stock" class="col-lg-3 control-label">Minimum Stock</label>
                         <div class="col-lg-8">
-                            <input type="number" name="minimum_stock" id="minimum_stock" class="form-control" required min="0">
+                            <input type="number" name="minimum_stock" id="minimum_stock" value="" class="form-control" required min="0">
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>

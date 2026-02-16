@@ -28,6 +28,7 @@ List of Workers
                             <th width="5%">#</th>
                             <th>Code</th>
                             <th>Name</th>
+                            <th>Occupation</th>
                             <th>Telephone</th>
                             <th>Address</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
@@ -60,9 +61,10 @@ List of Workers
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
                 {data: 'member_code'},  // Changed from 'kode_member'
                 {data: 'name'},         // Changed from 'nama'
-                {data: 'address'},
+                {data: 'occupation'},
                 {data: 'phone'},
-                {data: 'created_at'},
+                {data: 'address'},
+                // {data: 'created_at'},
                 {data: 'action', searchable: false, sortable: false},  // Changed from 'aksi'
             ]
         });

@@ -42,6 +42,9 @@ class MemberController extends Controller
             ->addColumn('name', function ($member) {
                 return e($member->name);
             })
+            ->addColumn('occupation', function ($member) {
+                return e($member->occupation);
+            })
             ->addColumn('address', function ($member) {
                 return $member->address ? e($member->address) : '<span class="text-muted">-</span>';
             })
@@ -90,6 +93,7 @@ class MemberController extends Controller
         // Validate with Indonesian field names (from payload)
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',      // Changed from 'name'
+            'occupation' => 'nullable|string|max:255', // New field for occupation
             'telepon' => 'required|string|max:20',    // Changed from 'phone'
             'alamat' => 'nullable|string',            // Changed from 'address'
         ], [
@@ -130,7 +134,8 @@ class MemberController extends Controller
             // Map Indonesian payload fields to English database columns
             $member = new Member();
             $member->member_code = $memberCode;
-            $member->name = $request->nama;           // Map: nama -> name
+            $member->name = $request->nama;
+            $member->occupation = $request->occupation; // Map: occupation -> occupation
             $member->phone = $request->telepon;       // Map: telepon -> phone
             $member->address = $request->alamat;      // Map: alamat -> address
             $member->branch_id = Auth::user()->branch_id;
@@ -197,6 +202,7 @@ class MemberController extends Controller
         // Validate with Indonesian field names (matching the store method)
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',
+            'occupation' => 'nullable|string|max:255', // New field for occupation
             'telepon' => 'required|string|max:20',
             'alamat' => 'nullable|string',
         ], [
@@ -281,123 +287,106 @@ class MemberController extends Controller
 
         return response(null, 204);
     }
-
-    // public function cetakMember(Request $request)
-    // {
-    //     $datamember = collect(array());
-    //     foreach ($request->id_member as $id) {
-    //         $member = Member::find($id);
-    //         $datamember[] = $member;
-    //     }
-
-    //     $datamember = $datamember->chunk(2);
-    //     $setting    = Setting::first();
-
-    //     $no  = 1;
-    //     $pdf = PDF::loadView('member.cetak', compact('datamember', 'no', 'setting'));
-    //     $pdf->setPaper(array(0, 0, 566.93, 850.39), 'potrait');
-    //     return $pdf->stream('member.pdf');
-    // }
     public function cetakMember(Request $request)
-{
-    // Validate the request
-    $validator = Validator::make($request->all(), [
-        'id_member' => 'required|array|min:1',
-        'id_member.*' => 'required|integer|exists:member,member_id',
-    ], [
-        'id_member.required' => 'Please select at least one member',
-        'id_member.array' => 'Invalid member data format',
-        'id_member.*.exists' => 'One or more selected members do not exist',
-    ]);
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'id_member' => 'required|array|min:1',
+            'id_member.*' => 'required|integer|exists:member,member_id',
+        ], [
+            'id_member.required' => 'Please select at least one member',
+            'id_member.array' => 'Invalid member data format',
+            'id_member.*.exists' => 'One or more selected members do not exist',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => false,
-            'errors' => $validator->errors(),
-            'message' => 'Validation failed'
-        ], 422);
-    }
-
-    try {
-        // Fetch all members in a single query for better performance
-        $memberIds = $request->id_member;
-        
-        // Optional: Filter by current branch if needed
-        $members = Member::whereIn('member_id', $memberIds)
-            ->when(Auth::check() && Auth::user()->branch_id, function ($query) {
-                return $query->where('branch_id', Auth::user()->branch_id);
-            })
-            ->orderByRaw("FIELD(member_id, " . implode(',', $memberIds) . ")")
-            ->get();
-
-        // Check if any members were found
-        if ($members->isEmpty()) {
+        if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'message' => 'No members found or you do not have permission to access them'
-            ], 404);
+                'errors' => $validator->errors(),
+                'message' => 'Validation failed'
+            ], 422);
         }
 
-        // Group members into pairs for printing (2 per page)
-        $groupedMembers = $members->chunk(2);
-        
-        // Get settings with fallback
-        $setting = Setting::first();
-        
-        // If no settings exist, create a default one to prevent errors
-        if (!$setting) {
-            $setting = new Setting();
-            $setting->company_name = config('app.name', 'My POS');
-            $setting->company_address = 'Not configured';
-            $setting->company_phone = '-';
-        }
+        try {
+            // Fetch all members in a single query for better performance
+            $memberIds = $request->id_member;
+            
+            // Optional: Filter by current branch if needed
+            $members = Member::whereIn('member_id', $memberIds)
+                ->when(Auth::check() && Auth::user()->branch_id, function ($query) {
+                    return $query->where('branch_id', Auth::user()->branch_id);
+                })
+                ->orderByRaw("FIELD(member_id, " . implode(',', $memberIds) . ")")
+                ->get();
 
-        // Generate the PDF
-        $pdf = PDF::loadView('member.cetak', [
-            'groupedMembers' => $groupedMembers,
-            'setting' => $setting,
-            'totalMembers' => $members->count(),
-            'printDate' => now()->format('d/m/Y H:i:s'),
-        ]);
+            // Check if any members were found
+            if ($members->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No members found or you do not have permission to access them'
+                ], 404);
+            }
 
-        // Configure PDF settings
-        $pdf->setPaper([0, 0, 566.93, 850.39], 'portrait'); // Fixed typo: 'potrait' -> 'portrait'
-        
-        // Set PDF metadata
-        $pdf->setOptions([
-            'title' => 'Member Cards - ' . $setting->company_name,
-            'subject' => 'Member Cards Export',
-            'author' => $setting->company_name,
-            'creator' => config('app.name', 'Laravel'),
-            'keywords' => 'member, cards, export',
-        ]);
+            // Group members into pairs for printing (2 per page)
+            $groupedMembers = $members->chunk(2);
+            
+            // Get settings with fallback
+            $setting = Setting::first();
+            
+            // If no settings exist, create a default one to prevent errors
+            if (!$setting) {
+                $setting = new Setting();
+                $setting->company_name = config('app.name', 'My POS');
+                $setting->company_address = 'Not configured';
+                $setting->company_phone = '-';
+            }
 
-        // Generate a unique filename
-        $filename = 'member-cards-' . date('Ymd-His') . '.pdf';
+            // Generate the PDF
+            $pdf = PDF::loadView('member.cetak', [
+                'groupedMembers' => $groupedMembers,
+                'setting' => $setting,
+                'totalMembers' => $members->count(),
+                'printDate' => now()->format('d/m/Y H:i:s'),
+            ]);
 
-        // Return the PDF as stream
-        return $pdf->stream($filename);
+            // Configure PDF settings
+            $pdf->setPaper([0, 0, 566.93, 850.39], 'portrait'); // Fixed typo: 'potrait' -> 'portrait'
+            
+            // Set PDF metadata
+            $pdf->setOptions([
+                'title' => 'Member Cards - ' . $setting->company_name,
+                'subject' => 'Member Cards Export',
+                'author' => $setting->company_name,
+                'creator' => config('app.name', 'Laravel'),
+                'keywords' => 'member, cards, export',
+            ]);
 
-    } catch (\Exception $e) {
-        \Log::error('Error generating member PDF: ' . $e->getMessage(), [
-            'user_id' => Auth::id(),
-            'member_ids' => $request->id_member ?? [],
-            'trace' => $e->getTraceAsString()
-        ]);
+            // Generate a unique filename
+            $filename = 'member-cards-' . date('Ymd-His') . '.pdf';
 
-        // Return error response if it's an AJAX request
-        if ($request->expectsJson()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to generate member cards',
-                'error' => config('app.debug') ? $e->getMessage() : null
+            // Return the PDF as stream
+            return $pdf->stream($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error generating member PDF: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'member_ids' => $request->id_member ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Return error response if it's an AJAX request
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to generate member cards',
+                    'error' => config('app.debug') ? $e->getMessage() : null
+                ], 500);
+            }
+
+            // For non-AJAX requests, return a simple error page
+            return response()->view('errors.pdf-generation', [
+                'message' => 'Failed to generate member cards. Please try again.'
             ], 500);
         }
-
-        // For non-AJAX requests, return a simple error page
-        return response()->view('errors.pdf-generation', [
-            'message' => 'Failed to generate member cards. Please try again.'
-        ], 500);
     }
-}
 }

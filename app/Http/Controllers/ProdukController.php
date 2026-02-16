@@ -57,7 +57,24 @@ class ProdukController extends Controller
                 return '<span class="badge bg-primary">'. e($produk->product_code) .'</span>';
             })
             ->addColumn('product_name', function ($produk) {
-                return '<span class="fw-semibold">'. e($produk->product_name) .'</span>';
+
+                $html = '<span class="fw-semibold">'. e($produk->product_name) .'</span>';
+
+                $details = [];
+
+                if (!empty($produk->unit)) {
+                    $details[] = 'Unit: ' . e($produk->unit);
+                }
+
+                if (!empty($produk->variant)) {
+                    $details[] = 'Variant: ' . e($produk->variant);
+                }
+
+                if (!empty($details)) {
+                    $html .= '<br><small class="text-muted">' . implode(' / ', $details) . '</small>';
+                }
+
+                return $html;
             })
             ->addColumn('brand', function ($produk) {
                 return $produk->brand ? e($produk->brand) : '<span class="text-muted">-</span>';
@@ -175,7 +192,6 @@ class ProdukController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate with Indonesian field names (from payload)
         $validator = Validator::make($request->all(), [
             'nama_produk' => 'required|string|max:255',
             'id_kategori' => 'required|exists:categories,category_id',
@@ -183,49 +199,11 @@ class ProdukController extends Controller
             'harga_beli' => 'required|numeric|min:0',
             'harga_jual' => 'required|numeric|min:0',
             'diskon' => 'nullable|numeric|min:0|max:100',
+            'unit' => 'required|string|max:100',
+            'variant' => 'required|string|max:100',
             'stok' => 'required|integer|min:0',
             'minimum_stock' => 'nullable|integer|min:0',
-        ], [
-            'nama_produk.required' => 'Product name is required',
-            'nama_produk.string' => 'Product name must be text',
-            'nama_produk.max' => 'Product name maximum 255 characters',
-            'id_kategori.required' => 'Category is required',
-            'id_kategori.exists' => 'Selected category is invalid',
-            'merk.string' => 'Brand must be text',
-            'merk.max' => 'Brand maximum 100 characters',
-            'harga_beli.required' => 'Purchase price is required',
-            'harga_beli.numeric' => 'Purchase price must be a number',
-            'harga_beli.min' => 'Purchase price minimum 0',
-            'harga_jual.required' => 'Selling price is required',
-            'harga_jual.numeric' => 'Selling price must be a number',
-            'harga_jual.min' => 'Selling price minimum 0',
-            'diskon.numeric' => 'Discount must be a number',
-            'diskon.min' => 'Discount minimum 0',
-            'diskon.max' => 'Discount maximum 100',
-            'stok.required' => 'Stock is required',
-            'stok.integer' => 'Stock must be an integer',
-            'stok.min' => 'Stock minimum 0',
         ]);
-
-        // Custom validation for selling price after discount
-        $validator->after(function ($validator) use ($request) {
-            if ($request->has('harga_jual') && $request->has('harga_beli') && $request->has('diskon')) {
-                $hargaBeli = (float) $request->harga_beli;
-                $hargaJual = (float) $request->harga_jual;
-                $diskon = (float) $request->diskon;
-                
-                // Calculate price after discount
-                $hargaSetelahDiskon = $hargaJual - ($hargaJual * $diskon / 100);
-                
-                // Check if final price after discount is greater than purchase price
-                if ($hargaSetelahDiskon <= $hargaBeli) {
-                    $validator->errors()->add(
-                        'harga_jual', 
-                        'Selling price after discount (' . number_format($hargaSetelahDiskon) . ') must be greater than purchase price (' . number_format($hargaBeli) . ')'
-                    );
-                }
-            }
-        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -235,9 +213,16 @@ class ProdukController extends Controller
             ], 422);
         }
 
-        // Check if category belongs to user's branch
+        // ✅ Normalize Data (IMPORTANT)
+        $productName = trim($request->nama_produk);
+        $brand = strtoupper(trim($request->merk ?? ''));
+        $variant = strtoupper(trim($request->variant));
+        $unit = strtoupper(trim($request->unit));
+        $branchId = Auth::user()->branch_id;
+
+        // ✅ Check category belongs to branch
         $kategori = Kategori::where('category_id', $request->id_kategori)
-            ->where('branch_id', Auth::user()->branch_id)
+            ->where('branch_id', $branchId)
             ->first();
 
         if (!$kategori) {
@@ -247,52 +232,77 @@ class ProdukController extends Controller
             ], 403);
         }
 
+        // ✅ Manual duplicate check (before DB error)
+        $exists = Produk::where('product_name', $productName)
+            ->where('brand', $brand)
+            ->where('variant', $variant)
+            ->where('unit', $unit)
+            ->where('branch_id', $branchId)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Product with same Name, Brand, Variant and Unit already exists.'
+            ], 409);
+        }
+
         DB::beginTransaction();
+
         try {
-            // Generate product code
+
             $productCode = $this->generateProductCode();
-            
-            // Map Indonesian payload fields to English database columns
-            $productData = [
-                'product_code' => $productCode,
-                'product_name' => $request->nama_produk,
-                'category_id' => $request->id_kategori,
-                'brand' => $request->merk,
+
+            $produk = Produk::create([
+                'product_code'   => $productCode,
+                'product_name'   => $productName,
+                'category_id'    => $request->id_kategori,
+                'brand'          => $brand,
                 'purchase_price' => $request->harga_beli,
-                'selling_price' => $request->harga_jual,
-                'branch_id' => Auth::user()->branch_id,
-            ];
+                'selling_price'  => $request->harga_jual,
+                'unit'           => $unit,
+                'variant'        => $variant,
+                'branch_id'      => $branchId,
+            ]);
 
-            $produk = Produk::create($productData);
-
-            // Check if stock entry exists
-            if (!$produk->stock) {
-                $produk->stock()->create([
-                    'stock' => 1,
-                    'minimum_stock' => 0,
-                    'created_by' => Auth::id(),
-                    'updated_by' => Auth::id(),
-                ]);
-            }
+            $produk->stock()->create([
+                'stock'         => $request->stok,
+                'minimum_stock' => $request->minimum_stock ?? 0,
+                'created_by'    => Auth::id(),
+                'updated_by'    => Auth::id(),
+            ]);
 
             DB::commit();
 
             return response()->json([
-                'data' => $produk
+                'status' => true,
+                'data'   => $produk->load('stock'),
+                'message'=> 'Product created successfully'
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\QueryException $e) {
+
             DB::rollBack();
-            
-            \Log::error('Error saving product: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
 
             return response()->json([
+                'status' => false,
+                'message' => 'Duplicate product detected.',
                 'error' => config('app.debug') ? $e->getMessage() : null
+            ], 409);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            \Log::error('Error saving product: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to save product'
             ], 500);
         }
     }
+
 
     private function generateProductCode()
     {
@@ -346,55 +356,36 @@ class ProdukController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-   public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
-        // Validate with Indonesian field names (from payload)
         $validator = Validator::make($request->all(), [
             'nama_produk' => 'required|string|max:255',
-            'id_kategori' => 'required|exists:categories,category_id', // Updated table name
+            'id_kategori' => 'required|exists:categories,category_id',
             'merk' => 'nullable|string|max:100',
             'harga_beli' => 'required|numeric|min:0',
             'harga_jual' => 'required|numeric|min:0',
             'diskon' => 'nullable|numeric|min:0|max:100',
+            'unit' => 'required|string|max:100',
+            'variant' => 'required|string|max:100',
             'stok' => 'required|integer|min:0',
             'minimum_stock' => 'nullable|integer|min:0',
-        ], [
-            'nama_produk.required' => 'Product name is required',
-            'nama_produk.string' => 'Product name must be text',
-            'nama_produk.max' => 'Product name maximum 255 characters',
-            'id_kategori.required' => 'Category is required',
-            'id_kategori.exists' => 'Selected category is invalid',
-            'merk.string' => 'Brand must be text',
-            'merk.max' => 'Brand maximum 100 characters',
-            'harga_beli.required' => 'Purchase price is required',
-            'harga_beli.numeric' => 'Purchase price must be a number',
-            'harga_beli.min' => 'Purchase price minimum 0',
-            'harga_jual.required' => 'Selling price is required',
-            'harga_jual.numeric' => 'Selling price must be a number',
-            'harga_jual.min' => 'Selling price minimum 0',
-            'diskon.numeric' => 'Discount must be a number',
-            'diskon.min' => 'Discount minimum 0',
-            'diskon.max' => 'Discount maximum 100',
-            'stok.required' => 'Stock is required',
-            'stok.integer' => 'Stock must be an integer',
-            'stok.min' => 'Stock minimum 0',
         ]);
 
-        // Custom validation for selling price after discount
+        // ✅ Selling price validation
         $validator->after(function ($validator) use ($request) {
             if ($request->has('harga_jual') && $request->has('harga_beli') && $request->has('diskon')) {
+
                 $hargaBeli = (float) $request->harga_beli;
                 $hargaJual = (float) $request->harga_jual;
                 $diskon = (float) $request->diskon;
-                
-                // Calculate price after discount
+
                 $hargaSetelahDiskon = $hargaJual - ($hargaJual * $diskon / 100);
-                
-                // Check if final price after discount is greater than purchase price
+
                 if ($hargaSetelahDiskon <= $hargaBeli) {
                     $validator->errors()->add(
-                        'harga_jual', 
-                        'Selling price after discount (' . number_format($hargaSetelahDiskon) . ') must be greater than purchase price (' . number_format($hargaBeli) . ')'
+                        'harga_jual',
+                        'Selling price after discount (' . number_format($hargaSetelahDiskon) .
+                        ') must be greater than purchase price (' . number_format($hargaBeli) . ')'
                     );
                 }
             }
@@ -408,73 +399,118 @@ class ProdukController extends Controller
             ], 422);
         }
 
-        // Check if category belongs to user's branch
-        $kategori = Kategori::where('category_id', $request->id_kategori)
-            ->where('branch_id', Auth::user()->branch_id)
-            ->first();
-
-        if (!$kategori) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Category not found or does not belong to your branch'
-            ], 403);
-        }
+        $branchId = Auth::user()->branch_id;
 
         DB::beginTransaction();
+
         try {
-            // Find product that belongs to user's branch
-            $produk = Produk::where('branch_id', Auth::user()->branch_id)
-                ->findOrFail($id);
 
-            // Map Indonesian payload fields to English database columns
-            $updateData = [
-                'product_name' => $request->nama_produk,     // Map: nama_produk -> product_name
-                'category_id' => $request->id_kategori,      // Map: id_kategori -> category_id
-                'brand' => $request->merk,                   // Map: merk -> brand
-                'purchase_price' => $request->harga_beli,    // Map: harga_beli -> purchase_price
-                'selling_price' => $request->harga_jual,     // Map: harga_jual -> selling_price
-                'discount' => $request->diskon ?? 0,         // Map: diskon -> discount
-                'stock' => $request->stok, 
-                'minimum_stock' => $request->minimum_stock,   // Map: minimum_stock -> minimum_stock
-            ];
+            // ✅ Find product inside branch
+            $produk = Produk::where('branch_id', $branchId)->findOrFail($id);
 
-            $produk->update($updateData);
+            // ✅ Normalize values
+            $productName = trim($request->nama_produk);
+            $brand = strtoupper(trim($request->merk ?? ''));
+            $variant = strtoupper(trim($request->variant));
+            $unit = strtoupper(trim($request->unit));
+
+            // ✅ Check category belongs to branch
+            $kategori = Kategori::where('category_id', $request->id_kategori)
+                ->where('branch_id', $branchId)
+                ->first();
+
+            if (!$kategori) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Category not found or does not belong to your branch'
+                ], 403);
+            }
+
+            // ✅ Check duplicate across OTHER products
+            $duplicate = Produk::where('product_name', $productName)
+                ->where('brand', $brand)
+                ->where('variant', $variant)
+                ->where('unit', $unit)
+                ->where('branch_id', $branchId)
+                ->where('product_id', '!=', $produk->product_id) // Ignore current product
+                ->exists();
+
+            if ($duplicate) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Another product with same Name, Brand, Variant and Unit already exists.'
+                ], 409);
+            }
+
+            // ✅ Update product
+            $produk->update([
+                'product_name'   => $productName,
+                'category_id'    => $request->id_kategori,
+                'brand'          => $brand,
+                'purchase_price' => $request->harga_beli,
+                'selling_price'  => $request->harga_jual,
+                'unit'           => $unit,
+                'variant'        => $variant,
+            ]);
+
+            // ✅ Update or create stock
+            if ($produk->stock) {
+                $produk->stock()->update([
+                    'stock'         => $request->stok,
+                    'minimum_stock' => $request->minimum_stock ?? 0,
+                    'updated_by'    => Auth::id(),
+                ]);
+            } else {
+                $produk->stock()->create([
+                    'stock'         => $request->stok,
+                    'minimum_stock' => $request->minimum_stock ?? 0,
+                    'created_by'    => Auth::id(),
+                    'updated_by'    => Auth::id(),
+                ]);
+            }
 
             DB::commit();
-
-            // Reload the product with category relationship
-            $produk->load('kategori');
 
             return response()->json([
                 'status' => true,
                 'message' => 'Product updated successfully',
-                'data' => $produk
+                'data' => $produk->load('kategori', 'stock')
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+
             DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'Product not found or does not belong to your branch'
             ], 404);
-            
-        } catch (\Exception $e) {
+
+        } catch (\Illuminate\Database\QueryException $e) {
+
             DB::rollBack();
-            
-            \Log::error('Error updating product: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'product_id' => $id,
-                'request' => $request->all(),
-                'trace' => $e->getTraceAsString()
-            ]);
 
             return response()->json([
                 'status' => false,
-                'message' => 'System error occurred',
+                'message' => 'Duplicate product combination detected.',
                 'error' => config('app.debug') ? $e->getMessage() : null
+            ], 409);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            \Log::error('Error updating product: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => false,
+                'message' => 'System error occurred'
             ], 500);
         }
     }
+
 
     /**
      * Remove the specified resource from storage.

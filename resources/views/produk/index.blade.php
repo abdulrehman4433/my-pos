@@ -140,6 +140,18 @@
                     $('#modal-form [name=merk]').val(product.brand);
                     $('#modal-form [name=harga_beli]').val(product.purchase_price);
                     $('#modal-form [name=harga_jual]').val(product.selling_price);
+                    $('#modal-form [name=unit]').val(product.unit);
+                    $('#modal-form [name=variant]').val(product.variant);
+                    
+                    // Load stock data
+                    const stockUrl = '{{ route('produk.stock_details', '') }}' + '/' + product.product_id;
+                    $.get(stockUrl)
+                        .done((stockResponse) => {
+                            if (stockResponse.status && stockResponse.data) {
+                                $('#modal-form [name=stok]').val(stockResponse.data.stock);
+                                $('#modal-form [name=minimum_stock]').val(stockResponse.data.minimum_stock);
+                            }
+                        });
                 } else {
                     alert('Invalid response format');
                 }
@@ -156,11 +168,13 @@
             .done((response) => {
                 if (response.status && response.data) {
                     const data = response.data;
-                    $('#product_display').val(data.product_name);
-                    $('#product_code_display').val(data.product_code);
-                    $('#stock_old').val(data.stock);
-                    $('#stock').val(data.stock);
-                    $('#minimum_stock').val(data.minimum_stock);
+                    const modal = $('#modal-stock-form');
+
+                    modal.find('#product_display').val(data.product_name);
+                    modal.find('#product_code_display').val(data.product_code);
+                    modal.find('#stock_old').val(data.stock);
+                    modal.find('#stock').val(data.stock);
+                    modal.find('#minimum_stock').val(data.minimum_stock);
                     
                     $('#modal-stock-form form').attr('action', '{{ route('produk.update_stock', '') }}' + '/' + data.product_id);
                     $('#modal-stock-form').modal('show');

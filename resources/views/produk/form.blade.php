@@ -51,10 +51,36 @@
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <label for="unit" class="col-lg-2 col-lg-offset-1 control-label">Item Unit</label>
+                        <div class="col-lg-6">
+                            <input type="text" name="unit" id="unit" class="form-control" required>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="variant" class="col-lg-2 col-lg-offset-1 control-label">Item Variant</label>
+                        <div class="col-lg-6">
+                            <input type="text" name="variant" id="variant" class="form-control" required>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="stok" class="col-lg-2 col-lg-offset-1 control-label">Stock</label>
+                        <div class="col-lg-6">
+                            <input type="number" name="stok" id="stok" class="form-control" required>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="minimum_stock" class="col-lg-2 col-lg-offset-1 control-label">Minimum Stock</label>
+                        <div class="col-lg-6">
+                            <input type="number" name="minimum_stock" id="minimum_stock" class="form-control" value="0" required>
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
                 </div>
                 <input type="hidden" name="diskon" id="diskon" value="0">
-                <input type="hidden" name="stok" id="stok" value="5">
-                <input type="hidden" name="minimum_stock" id="minimum_stock" value="0">
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-flat btn-success"><i class="fa fa-save"></i> Save</button>
                     <button type="button" class="btn btn-sm btn-flat btn-danger" data-dismiss="modal"><i class="fa fa-arrow-circle-left"></i> Cancel</button>

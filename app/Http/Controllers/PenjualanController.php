@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
 use App\Models\Produk;
+use App\Models\Invoice;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use PDF;
@@ -16,47 +17,48 @@ class PenjualanController extends Controller
         return view('penjualan.index');
     }
 
-    public function data()
+    public function data(Request $request)
     {
-        $penjualan = Penjualan::with('member')->orderBy('id_penjualan', 'desc')->get();
+        $invoices = Invoice::with('creator')
+            ->where('payment_status', 'paid')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return datatables()
-            ->of($penjualan)
+            ->of($invoices)
             ->addIndexColumn()
-            ->addColumn('total_item', function ($penjualan) {
-                return format_uang($penjualan->total_item);
+            ->addColumn('invoice_date', function ($invoice) {
+                return tanggal_indonesia($invoice->created_at, false);
             })
-            ->addColumn('total_harga', function ($penjualan) {
-                return '$ '. format_uang($penjualan->total_harga);
+            ->addColumn('customer_code', function ($invoice) {
+                return '<span class="label label-success">'. $invoice->invoice_code .'</span>';
             })
-            ->addColumn('bayar', function ($penjualan) {
-                return '$ '. format_uang($penjualan->bayar);
+            ->addColumn('quantity', function ($invoice) {
+                $itemCount = $invoice->items()->count();
+                return $itemCount;
             })
-            ->addColumn('tanggal', function ($penjualan) {
-                return tanggal_indonesia($penjualan->created_at, false);
+            ->addColumn('total_amount', function ($invoice) {
+                return $invoice->sub_total;
             })
-            ->addColumn('kode_member', function ($penjualan) {
-                $member = $penjualan->member->kode_member ?? '';
-                return '<span class="label label-success">'. $member .'</spa>';
+            ->addColumn('discount_amount', function ($invoice) {
+                return $invoice->discount_amount;
             })
-            ->editColumn('diskon', function ($penjualan) {
-                return $penjualan->diskon . '%';
+            ->addColumn('final_amount', function ($invoice) {
+                return $invoice->grand_total;
             })
-            ->editColumn('kasir', function ($penjualan) {
-                return $penjualan->user->name ?? '';
+            ->addColumn('cashier_name', function ($invoice) {
+                return $invoice->creator->name ?? '-';
             })
-            ->addColumn('aksi', function ($penjualan) {
+            ->addColumn('aksi', function ($invoice) {
                 return '
-                <div class="btn-group">
-                    <button onclick="showDetail(`'. route('penjualan.show', $penjualan->id_penjualan) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-eye"></i></button>
-                    <button onclick="deleteData(`'. route('penjualan.destroy', $penjualan->id_penjualan) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                </div>
+                    <button onclick="showDetail(`'. route('penjualan.show', $invoice->id) .'`)" class="btn btn-primary btn-xs"><i class="fa fa-eye"></i></button>
+                    <button onclick="deleteData(`'. route('penjualan.destroy', $invoice->id) .'`)" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></button>
                 ';
             })
-            ->rawColumns(['aksi', 'kode_member'])
+            ->rawColumns(['aksi', 'customer_code'])
             ->make(true);
     }
-    // visit "codeastro" for more projects!
+
     public function create()
     {
         $penjualan = new Penjualan();
@@ -99,45 +101,39 @@ class PenjualanController extends Controller
 
     public function show($id)
     {
-        $detail = PenjualanDetail::with('produk')->where('id_penjualan', $id)->get();
+        $invoice = Invoice::findOrFail($id);
+        $detail = $invoice->items;
 
         return datatables()
             ->of($detail)
             ->addIndexColumn()
-            ->addColumn('kode_produk', function ($detail) {
-                return '<span class="label label-success">'. $detail->produk->kode_produk .'</span>';
+            ->addColumn('kode_produk', function ($item) {
+                return '<span class="label label-success">'. $item->product_code .'</span>';
             })
-            ->addColumn('nama_produk', function ($detail) {
-                return $detail->produk->nama_produk;
+            ->addColumn('nama_produk', function ($item) {
+                return $item->product_name;
             })
-            ->addColumn('harga_jual', function ($detail) {
-                return '$ '. format_uang($detail->harga_jual);
+            ->addColumn('harga_jual', function ($item) {
+                return '$ '. format_uang($item->unit_price);
             })
-            ->addColumn('jumlah', function ($detail) {
-                return format_uang($detail->jumlah);
+            ->addColumn('jumlah', function ($item) {
+                return format_uang($item->quantity);
             })
-            ->addColumn('subtotal', function ($detail) {
-                return '$ '. format_uang($detail->subtotal);
+            ->addColumn('subtotal', function ($item) {
+                return $item->per_item_price;
+            })
+            ->addColumn('total_price', function ($item) {
+                return $item->total_price;
             })
             ->rawColumns(['kode_produk'])
             ->make(true);
     }
-    // visit "codeastro" for more projects!
+
     public function destroy($id)
     {
-        $penjualan = Penjualan::find($id);
-        $detail    = PenjualanDetail::where('id_penjualan', $penjualan->id_penjualan)->get();
-        foreach ($detail as $item) {
-            $produk = Produk::find($item->id_produk);
-            if ($produk) {
-                $produk->stok += $item->jumlah;
-                $produk->update();
-            }
-
-            $item->delete();
-        }
-
-        $penjualan->delete();
+        $invoice = Invoice::findOrFail($id);
+        $invoice->items()->delete();
+        $invoice->delete();
 
         return response(null, 204);
     }
@@ -179,4 +175,3 @@ class PenjualanController extends Controller
         return $pdf->stream('Transaction-'. date('Y-m-d-his') .'.pdf');
     }
 }
-// visit "codeastro" for more projects!

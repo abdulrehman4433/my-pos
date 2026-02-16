@@ -155,7 +155,11 @@
                             <table class="table table-bordered" id="products_table">
                                 <thead>
                                     <tr>
-                                        <th width="300">Product</th>
+                                        <th>Code</th>
+                                        <th width="300">Product Name</th>
+                                        <th width="180">Brand</th>
+                                        <th width="180">Variant</th>
+                                        <th width="180">Unit</th>
                                         <th width="180">Unit Price</th>
                                         <th width="180">Qty</th>
                                         <th width="180">Total</th>

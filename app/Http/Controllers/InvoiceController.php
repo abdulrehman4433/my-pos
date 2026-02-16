@@ -65,7 +65,10 @@ class InvoiceController extends Controller
                 <button onclick="viewFormDownload('. $invoice->id .')" 
                         class="btn btn-warning btn-xs">
                     <i class="fa fa-file-pdf-o"></i>
-                </button>             
+                </button> 
+                <button onclick="deleteData(`'. route('invoice.destroy', $invoice->id) .'`)" 
+                        class="btn btn-danger btn-xs">
+                    <i class="fa fa-trash"></i>           
             ';
 
             
@@ -83,7 +86,11 @@ class InvoiceController extends Controller
         foreach ($products as $product) {
             $data[] = [
                 'product_id' => $product->product_id,
+                'product_code' => $product->product_code,
                 'product_name' => $product->product_name,
+                'brand' => $product->brand ?? 'N/A',
+                'variant' => $product->variant ?? 'N/A',
+                'unit' => $product->unit ?? 'N/A',
                 'selling_price' => $product->selling_price,
                 'stock' => $product->stock ? [
                     'id' => $product->stock->id,
@@ -140,7 +147,8 @@ class InvoiceController extends Controller
     $discountValue = ($subTotal * $discountRate) / 100;
     $grandTotal    = max(0, ($subTotal - $discountValue) + $taxAmount);
 
-    return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal) {
+    $fromDashboard = $request->input('from_dashboard');
+    return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal, $fromDashboard) {
 
         $invoiceReference = $request->input('invoice_reference');
 
@@ -334,6 +342,10 @@ class InvoiceController extends Controller
             ]);
         }
 
+        // If created from dashboard, redirect to /invoice
+        if ($fromDashboard) {
+            return redirect('/invoice');
+        }
         return response()->json([
             'success'     => true,
             'message'     => 'Invoice created successfully!',
@@ -371,9 +383,13 @@ class InvoiceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        $invoice = Invoice::findOrFail($id);
+        $invoice->items()->delete();
+        $invoice->delete();
+
+        return response(null, 204);
     }
 
     // app/Http/Controllers/InvoiceController.php

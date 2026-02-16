@@ -166,7 +166,11 @@
                             <option value="${item.product_id}"
                                 data-name="${item.product_name}"
                                 data-price="${item.selling_price}"
-                                data-stock="${availableStock}">
+                                data-stock="${availableStock}"
+                                data-code="${item.product_code}"
+                                data-unit="${item.unit}"
+                                data-brand="${item.brand}"
+                                data-variant="${item.variant}">
                                 ${item.product_name} (RS ${item.selling_price}) - Stock: ${availableStock}
                             </option>
                         `);
@@ -192,10 +196,14 @@
 
                         const product = {
                             id: productId,
+                            code: opt.data('code') || '',
                             name: opt.data('name'),
                             price: parseFloat(opt.data('price')),
                             qty: requestedQty,
-                            availableStock: availableStock
+                            availableStock: availableStock,
+                            unit: opt.data('unit') || '',
+                            brand: opt.data('brand') || '',
+                            variant: opt.data('variant') || ''
                         };
 
                         addProductRow(product);
@@ -244,12 +252,14 @@
 
         const row = `
             <tr data-id="${product.id}" data-stock="${product.availableStock}">
-                <td>
-                    ${product.name}
+                <td>${product.code || 'N/A'}</td>
+                <td>${product.name}
                     <input type="hidden" name="products[${product.id}][id]" value="${product.id}">
                 </td>
-                <td>
-                    ${product.price}
+                <td>${product.brand || 'N/A'}</td>
+                <td>${product.variant || 'N/A'}</td>
+                <td>${product.unit || 'N/A'}</td>
+                <td>${product.price}
                     <input type="hidden" name="products[${product.id}][price]" value="${product.price}">
                 </td>
                 <td>

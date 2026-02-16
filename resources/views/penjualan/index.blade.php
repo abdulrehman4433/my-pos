@@ -18,11 +18,11 @@
                     <thead>
                         <th width="5%">#</th>
                         <th>Date</th>
-                        <th>MemberCode</th>
+                        <th>Invoice Code</th>
                         <th>Quantity</th>
-                        <th>Total Price</th>
+                        <th>Subtotal</th>
                         <th>Discount</th>
-                        <th>Total Pay</th>
+                        <th>Grand Total</th>
                         <th>Cashier</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
                     </thead>
@@ -50,13 +50,13 @@
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'tanggal'},
-                {data: 'kode_member'},
-                {data: 'total_item'},
-                {data: 'total_harga'},
-                {data: 'diskon'},
-                {data: 'bayar'},
-                {data: 'kasir'},
+                {data: 'invoice_date'},
+                {data: 'customer_code'},
+                {data: 'quantity'},
+                {data: 'total_amount'},
+                {data: 'discount_amount'},
+                {data: 'final_amount'},
+                {data: 'cashier_name'},
                 {data: 'aksi', searchable: false, sortable: false},
             ]
         });
@@ -67,11 +67,10 @@
             dom: 'Brt',
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
-                {data: 'nama_produk'},
-                {data: 'harga_jual'},
+                {data: 'item_name'},
                 {data: 'jumlah'},
-                {data: 'subtotal'},
+                {data: 'per_item_price'},
+                {data: 'total_price'},
             ]
         })
     });
