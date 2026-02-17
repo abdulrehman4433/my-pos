@@ -10,13 +10,28 @@
 @endsection
 
 @section('content')
+<!-- Date Range Filter -->
+<div class="row" style="margin-bottom: 10px;">
+    <div class="col-lg-12 text-right">
+        <form id="dashboard-date-range-form" class="form-inline" style="display:inline-block;">
+            <div class="form-group">
+                <label for="dashboard_date_start" style="font-size: 18px;">Date Range: </label>
+                <input type="date" id="dashboard_date_start" name="date_start" class="form-control" style="font-size:18px; height:44px; width:180px;" value="{{ request('date_start', $tanggal_awal) }}">
+                <span style="font-size: 18px; margin: 0 8px;">to</span>
+                <input type="date" id="dashboard_date_end" name="date_end" class="form-control" style="font-size:18px; height:44px; width:180px;" value="{{ request('date_end', $tanggal_akhir) }}">
+            </div>
+            <button type="submit" class="btn btn-primary" style="font-size:18px; height:44px; min-width:100px; margin-left:8px;">Filter</button>
+        </form>
+    </div>
+</div>
+
 <!-- Small boxes (Stat box) -->
 <div class="row">
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <div class="small-box bg-green" onclick="addForm('{{ route('invoice.store') }}')">
             <div class="inner">
-                <h3>{{ $penjualan }}</h3>
+                <h3>{{ $penjualan ?? 0 }}</h3>
                 <p class="p-20">Create Invoice</p>
             </div>
             <div class="icon">
@@ -29,8 +44,7 @@
         <a href="{{ route('kategori.index') }}">
         <div class="small-box bg-primary">
             <div class="inner">
-                <h3>{{ $kategori }}</h3>
-
+                <h3>{{ $kategori ?? 0 }}</h3>
                 <p class="p-20">Total Categories</p>
             </div>
             <div class="icon">
@@ -39,14 +53,12 @@
         </div>
         </a>
     </div>
-    <!-- ./col --><!-- visit "codeastro" for more projects! -->
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('produk.index') }}">
         <div class="small-box bg-purple">
             <div class="inner">
-                <h3>{{ $produk }}</h3>
-
+                <h3>{{ $produk ?? 0 }}</h3>
                 <p class="p-20">Total Product</p>
             </div>
             <div class="icon">
@@ -55,14 +67,12 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('member.index') }}">
         <div class="small-box bg-yellow">
             <div class="inner">
-                <h3>{{ $member }}</h3>
-
+                <h3>{{ $member ?? 0 }}</h3>
                 <p class="p-20">Total Worker</p>
             </div>
             <div class="icon">
@@ -71,19 +81,15 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
 </div>
-<!-- /.row -->
 
 <div class="row">
-    <!-- ./col -->
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('supplier.index') }}">
         <div class="small-box bg-olive">
             <div class="inner">
-                <h3>{{ $supplier }}</h3>
-
+                <h3>{{ $supplier ?? 0 }}</h3>
                 <p class="p-20">Total Supplier</p>
             </div>
             <div class="icon">
@@ -92,14 +98,12 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('penjualan.index') }}">
         <div class="small-box bg-purple">
             <div class="inner">
-                <h3>{{ $penjualan }}</h3>
-
+                <h3>{{ $penjualan ?? 0 }}</h3>
                 <p class="p-20">Sales</p>
             </div>
             <div class="icon">
@@ -108,15 +112,13 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
 
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('pengeluaran.index') }}">
         <div class="small-box bg-red">
             <div class="inner">
-                <h3>{{ $pengeluaran }}</h3>
-
+                <h3>{{ $pengeluaran ?? 0 }}</h3>
                 <p class="p-20">Total Expenses</p>
             </div>
             <div class="icon">
@@ -125,15 +127,13 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
-    <!-- visit "codeastro" for more projects! -->
+
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('pembelian.index') }}">
         <div class="small-box bg-green">
             <div class="inner">
-                <h3>{{ $pembelian }}</h3>
-
+                <h3>{{ $pembelian ?? 0 }}</h3>
                 <p class="p-20">Total Purchase</p>
             </div>
             <div class="icon">
@@ -142,9 +142,6 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
-
-    <!-- visit "codeastro" for more projects! -->
 </div>
 
 <div class="row">
@@ -154,16 +151,18 @@
         <div class="small-box bg-primary">
             <div class="inner">
                 @php
-                    $totalCashPaid = $total_invoice
-                    ->where('payment_received', 'cash')
-                    ->where('payment_status', 'paid')
-                    ->sum(function ($invoice) {
-                        return (float) $invoice->grand_total;
-                    });
+                    $totalCashPaid = 0;
+                    if (isset($total_invoice) && $total_invoice->isNotEmpty()) {
+                        $totalCashPaid = $total_invoice
+                        ->where('payment_received', 'cash')
+                        ->where('payment_status', 'paid')
+                        ->sum(function ($invoice) {
+                            return (float) ($invoice->grand_total ?? 0);
+                        });
+                    }
                 @endphp
-                <h3>{{ $totalCashPaid }}</h3>
-
-                <p class="p-20">Total Cash Amount Reveiced</p>
+                <h3>{{ number_format($totalCashPaid, 0) }}</h3>
+                <p class="p-20">Total Cash Amount Received</p>
             </div>
             <div class="icon">
                 <i class="fa fa-dollar"></i>
@@ -171,7 +170,6 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
 
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
@@ -179,14 +177,16 @@
         <div class="small-box bg-olive">
             <div class="inner">
                 @php
-                    $totalAcountPaid = $total_invoice
-                    ->whereNotIn('payment_received', ['cash', 'other'])
-                    ->where('payment_status', 'paid')
-                    ->sum('grand_total');
+                    $totalAcountPaid = 0;
+                    if (isset($total_invoice) && $total_invoice->isNotEmpty()) {
+                        $totalAcountPaid = $total_invoice
+                        ->whereNotIn('payment_received', ['cash', 'other'])
+                        ->where('payment_status', 'paid')
+                        ->sum('grand_total');
+                    }
                 @endphp
-                <h3>{{ $totalAcountPaid }}</h3>
-
-                <p class="p-20">Total Account Payment </p>
+                <h3>{{ number_format($totalAcountPaid, 0) }}</h3>
+                <p class="p-20">Total Account Payment</p>
             </div>
             <div class="icon">
                 <i class="fa fa-dollar"></i>
@@ -194,22 +194,23 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
-    <!-- visit "codeastro" for more projects! -->
+
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('partial-transaction-return.data') }}">
         <div class="small-box bg-yellow">
             <div class="inner">
                 @php
-                    $pendingCashPaid = $total_invoice
-                    ->where('payment_status', 'partial')
-                    ->sum(function ($invoice) {
-                        return (float) $invoice->remaining_amount;
-                    });
+                    $pendingCashPaid = 0;
+                    if (isset($total_invoice) && $total_invoice->isNotEmpty()) {
+                        $pendingCashPaid = $total_invoice
+                        ->where('payment_status', 'partial')
+                        ->sum(function ($invoice) {
+                            return (float) ($invoice->remaining_amount ?? 0);
+                        });
+                    }
                 @endphp
-                <h3>{{ $pendingCashPaid }}</h3>
-
+                <h3>{{ number_format($pendingCashPaid, 0) }}</h3>
                 <p class="p-20">Total Pending Payment</p>
             </div>
             <div class="icon">
@@ -218,16 +219,13 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
-    
-    <!-- visit "codeastro" for more projects! -->
+
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="#">
         <div class="small-box bg-purple">
             <div class="inner">
-                <h3>{{ $totalProfit }}</h3>
-
+                <h3>{{ number_format($totalProfit ?? 0, 0) }}</h3>
                 <p class="p-20">Total Profit</p>
             </div>
             <div class="icon">
@@ -236,110 +234,105 @@
         </div>
         </a>
     </div>
-    <!-- ./col -->
-
-    <!-- visit "codeastro" for more projects! -->
 </div>
+
 <!-- Main row -->
 <div class="row">
     <div class="col-lg-6">
         <div class="box">
             <div class="box-header with-border">
-                <h3 class="box-title">Income Chart {{ tanggal_indonesia($tanggal_awal, false) }} - {{ tanggal_indonesia($tanggal_akhir, false) }}</h3>
+                <h3 class="box-title">Income Chart {{ tanggal_indonesia($tanggal_awal ?? now(), false) }} - {{ tanggal_indonesia($tanggal_akhir ?? now(), false) }}</h3>
             </div>
-            <!-- /.box-header -->
             <div class="box-body">
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="chart">
-                            <!-- Sales Chart Canvas -->
-                            <canvas id="salesChart" style="height: 280px;"></canvas>
+                            <canvas id="salesChart" style="height: 280px; width: 100%;"></canvas>
                         </div>
-                        <!-- /.chart-responsive -->
                     </div>
                 </div>
-                <!-- /.row -->
             </div>
         </div>
-        <!-- /.box -->
     </div>
-    <!-- /.col -->
+    
     <div class="col-lg-6">
-    <div class="box box-primary" style="
-        min-height: 350px !important;
-        overflow-y: auto;">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-line-chart"></i> Top Selling Products
-            </h3>
-        </div>
+        <div class="box box-primary" style="min-height: 350px !important; overflow-y: auto;">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-line-chart"></i> Top Selling Products
+                </h3>
+            </div>
+            <div class="box-body">
+                <ul class="products-list product-list-in-box">
+                    @forelse ($top_selling_products ?? [] as $index => $product)
+                        <li class="item">
+                            <div class="product-info">
+                                <span class="product-title">
+                                    @if ($index == 0) 🥇
+                                    @elseif ($index == 1) 🥈
+                                    @elseif ($index == 2) 🥉
+                                    @else #{{ $index + 1 }}
+                                    @endif
 
-        <div class="box-body">
-            <ul class="products-list product-list-in-box">
-                @foreach ($top_selling_products as $index => $product)
-                    <li class="item">
-                        <div class="product-info">
-                            <span class="product-title">
-                                {{-- Rank Icons --}}
-                                @if ($index == 0) 🥇
-                                @elseif ($index == 1) 🥈
-                                @elseif ($index == 2) 🥉
-                                @else #{{ $index + 1 }}
-                                @endif
+                                    {{ $product->item_name ?? $product->product_name ?? 'N/A' }}
 
-                                {{ $product->item_name }}
-
-                                <span class="label label-success pull-right">
-                                    {{ $product->total_quantity_sold }} sold
+                                    <span class="label label-success pull-right">
+                                        {{ $product->total_quantity_sold ?? 0 }} sold
+                                    </span>
                                 </span>
-                            </span>
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="item">
+                            <div class="product-info">
+                                <span class="product-title">No sales data available</span>
+                            </div>
+                        </li>
+                    @endforelse
+                </ul>
+            </div>
         </div>
     </div>
 </div>
-    <!-- /.col -->
-</div>
-<!-- /.row (main row) -->
 
 <!-- Main row -->
 <div class="row">
     <div class="col-lg-6"> 
-    <div class="box box-primary" style="
-        min-height: 350px !important;
-        overflow-y: auto;">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                 Products go out of stock soon
-            </h3>
+        <div class="box box-primary" style="min-height: 350px !important; overflow-y: auto;">
+            <div class="box-header with-border">
+                <h3 class="box-title">Products going out of stock soon</h3>
+            </div>
+            <div class="box-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Stock</th>
+                            <th>Minimum Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($lowStockProducts ?? [] as $product)
+                        <tr>
+                            <td>{{ $product->product_name ?? $product->name ?? 'N/A' }}</td>
+                            <td>{{ $product->stock ?? 0 }}</td>
+                            <td>{{ $product->minimum_stock ?? 0 }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" class="text-center">No low stock products</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="box-body">
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Product Name</th>
-                        <th>Stock</th>
-                        <th>Minimum Stock</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($lowStockProducts as $product)
-                    <tr>
-                        <td>{{ $product->product_name }}</td>
-                        <td>{{ $product->stock }}</td>
-                        <td>{{ $product->minimum_stock }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
     </div>
 </div>
+
 @includeIf('invoice.form')
 @endsection
+
 @push('css')
     <style>
         .products-list .item {
@@ -366,57 +359,509 @@
         .p-20 {
             font-size: 20px !important;
         }
+        
         .small-box {
             padding: 10px 0px;
             cursor: pointer;
         }
-        /* Fix select option text color for product_select */
+        
         #product_select, #product_select option {
             color: #222 !important;
             background-color: #fff !important;
+        }
+        
+        .select2-container .select2-selection--single {
+            height: 40px !important;
+            min-height: 35px !important;
+            line-height: 35px !important;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 35px !important;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 35px !important;
+        }
+        
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            color: #fff !important;
+        }
+        
+        .chart {
+            position: relative;
+            height: 280px;
+            width: 100%;
         }
     </style>
 @endpush
 
 @push('scripts')
 <!-- ChartJS -->
+
 <script src="{{ asset('AdminLTE-2/bower_components/chart.js/Chart.js') }}"></script>
 <script>
-// filepath: c:\xampp\htdocs\my-pos\resources\views\admin\dashboard.blade.php
+// Global variables
+let salesChart = null;
+let productStockMap = {};
 
-$(function() {
-    // Get context with jQuery - using jQuery's .get() method.
-    var salesChartCanvas = $('#salesChart').get(0).getContext('2d');
-    var salesChart = new Chart(salesChartCanvas);
+// Error handler for debugging
+window.onerror = function(msg, url, line, col, error) {
+    console.error('Global Error: ' + msg + ' at ' + url + ':' + line);
+    return false;
+};
 
-    var salesChartData = {
-        labels: {{ json_encode($data_tanggal) }},
-        datasets: [
-            {
-                label: 'Pendapatan',
-                fillColor           : 'rgba(60,141,188,0.9)',
-                strokeColor         : 'rgba(60,141,188,0.8)',
-                pointColor          : '#3b8bba',
-                pointStrokeColor    : 'rgba(60,141,188,1)',
-                pointHighlightFill  : '#fff',
-                pointHighlightStroke: 'rgba(60,141,188,1)',
-                data: {{ json_encode($data_pendapatan) }}
+// Format date as d/m/Y
+function formatDateDMY(dateStr) {
+    if (!dateStr) return '';
+    
+    // Try Y-m-d
+    let match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) return `${match[3]}/${match[2]}/${match[1]}`;
+    
+    // Try d-m-Y
+    match = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+    
+    // Try d/m/Y
+    match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+    
+    // Try native Date
+    const d = new Date(dateStr);
+    if (!isNaN(d)) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+    
+    return dateStr;
+}
+
+function destroyChart() {
+    if (salesChart) {
+        try {
+            if (typeof salesChart.destroy === 'function') {
+                salesChart.destroy();
             }
-        ]
-    };
+        } catch (e) {
+            console.warn('Error destroying chart:', e);
+        } finally {
+            salesChart = null;
+        }
+    }
+}
 
-    var salesChartOptions = {
-        pointDot : false,
-        responsive : true
-    };
+function renderSalesChart(labels, data) {
+    const canvas = document.getElementById('salesChart');
+    if (!canvas) {
+        console.error('Canvas element not found');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Safely destroy existing chart
+    destroyChart();
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Validate data
+    if (!labels || !data || !Array.isArray(labels) || !Array.isArray(data) || labels.length === 0 || data.length === 0) {
+        console.log('No chart data available - showing message');
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#999';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data available for selected date range', canvas.width/2, canvas.height/2);
+        return;
+    }
+    
+    const formattedLabels = labels.map(l => formatDateDMY(l));
+    
+    try {
+        salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    backgroundColor: 'rgba(60,141,188,0.2)',
+                    borderColor: 'rgba(60,141,188,0.9)',
+                    pointBackgroundColor: '#3b8bba',
+                    pointBorderColor: 'rgba(60,141,188,1)',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(60,141,188,1)',
+                    data: data,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += formatCurrency(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        display: true,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        console.log('Chart rendered successfully with', labels.length, 'data points');
+    } catch (e) {
+        console.error('Error creating chart:', e);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#999';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error loading chart data', canvas.width/2, canvas.height/2);
+    }
+}
 
-    salesChart.Line(salesChartData, salesChartOptions);
+function formatCurrency(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        value = 0;
+    }
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(value);
+}
+
+function updateStatistics(statistics) {
+    console.log('Updating statistics with:', statistics);
+    
+    // Add your statistics update logic here
+    // For example, if you have specific elements to update:
+    if (statistics) {
+        // Update your statistics boxes here
+        // $('.total-sales').text(statistics.total_sales || 0);
+        // $('.total-profit').text(formatCurrency(statistics.total_profit || 0));
+    }
+}
+
+// Initialize when document is ready
+$(document).ready(function() {
+    console.log('Document ready - Initializing dashboard');
+    
+    try {
+        // Get data from Blade with fallbacks
+        const chartLabels = @json($data_tanggal ?? []);
+        const chartData = @json($data_pendapatan ?? []);
+        
+        console.log('Initial chart data - Labels:', chartLabels.length, 'Data:', chartData.length);
+        
+        // Ensure we have arrays
+        const safeLabels = Array.isArray(chartLabels) ? chartLabels : [];
+        const safeData = Array.isArray(chartData) ? chartData : [];
+        
+        // Small delay to ensure canvas is ready
+        setTimeout(() => {
+            renderSalesChart(safeLabels, safeData);
+        }, 100);
+    } catch (e) {
+        console.error('Error initializing chart:', e);
+        const canvas = document.getElementById('salesChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.fillText('Error loading chart data', canvas.width/2, canvas.height/2);
+        }
+    }
+
+    // IMPROVED DATE RANGE FILTER AJAX
+    console.log('Attaching form submit handler');
+    
+    // Check if form exists
+    if ($('#dashboard-date-range-form').length === 0) {
+        console.error('Form #dashboard-date-range-form not found!');
+    } else {
+        console.log('Form found, attaching handler');
+    }
+    
+    $('#dashboard-date-range-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const start = $('#dashboard_date_start').val();
+        const end = $('#dashboard_date_end').val();
+        
+        console.log('=== FILTER SUBMITTED ===');
+        console.log('Start date:', start);
+        console.log('End date:', end);
+        
+        // Validate dates
+        if (!start || !end) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        if (start > end) {
+            alert('Start date cannot be after end date');
+            return;
+        }
+        
+        // Show loading state
+        const $btn = $(this).find('button[type="submit"]');
+        const originalText = $btn.text();
+        $btn.text('Loading...').prop('disabled', true);
+        
+        // Get CSRF token
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+        console.log('CSRF Token present:', !!csrfToken);
+        
+        // Build URL with query parameters (fallback method)
+        const url = '{{ route("dashboard") }}';
+        console.log('Request URL:', url);
+        
+        // Make AJAX request
+        $.ajax({
+            url: url,
+            type: 'GET',
+            data: { 
+                date_start: start, 
+                date_end: end 
+            },
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            success: function(res) {
+                console.log('=== AJAX SUCCESS ===');
+                console.log('Full response:', res);
+                
+                // Check if we have data
+                const labels = res.data_tanggal || [];
+                const data = res.data_pendapatan || [];
+                
+                console.log('Response labels:', labels.length, labels);
+                console.log('Response data:', data.length, data);
+                
+                
+                // Update chart
+                renderSalesChart(labels, data);
+                
+                // UPDATE THE CHART HEADER DATE RANGE
+                updateChartHeaderDateRange();
+                
+                // Update ALL statistics boxes with new data
+                if (res.statistics) {
+                    console.log('Updating statistics with:', res.statistics);
+                    
+                    // Update the statistics boxes using the IDs or classes from your HTML
+                    // You need to map these to your actual HTML elements
+                    
+                    // Example: Update the total invoice count (Create Invoice box)
+                    if (res.statistics.total_invoices !== undefined) {
+                        $('.small-box.bg-green .inner h3').first().text(res.statistics.total_invoices);
+                    }
+                    
+                    // Update categories count
+                    if (res.statistics.total_categories !== undefined) {
+                        $('.small-box.bg-primary .inner h3').text(res.statistics.total_categories);
+                    }
+                    
+                    // Update products count
+                    if (res.statistics.total_products !== undefined) {
+                        $('.small-box.bg-purple .inner h3').first().text(res.statistics.total_products);
+                    }
+                    
+                    // Update members/workers count
+                    if (res.statistics.total_members !== undefined) {
+                        $('.small-box.bg-yellow .inner h3').text(res.statistics.total_members);
+                    }
+                    
+                    // Update suppliers count
+                    if (res.statistics.total_suppliers !== undefined) {
+                        $('.small-box.bg-olive .inner h3').text(res.statistics.total_suppliers);
+                    }
+                    
+                    // Update sales count
+                    if (res.statistics.total_sales !== undefined) {
+                        $('.small-box.bg-purple .inner h3').eq(1).text(res.statistics.total_sales);
+                    }
+                    
+                    // Update expenses
+                    if (res.statistics.total_expenses !== undefined) {
+                        $('.small-box.bg-red .inner h3').text(res.statistics.total_expenses);
+                    }
+                    
+                    // Update purchases
+                    if (res.statistics.total_purchases !== undefined) {
+                        $('.small-box.bg-green .inner h3').eq(1).text(res.statistics.total_purchases);
+                    }
+                    
+                    // Update Cash Amount Received
+                    if (res.statistics.total_cash_paid !== undefined) {
+                        $('.small-box.bg-primary .inner h3').eq(1).text(formatNumber(res.statistics.total_cash_paid));
+                    }
+                    
+                    // Update Account Payment
+                    if (res.statistics.total_account_paid !== undefined) {
+                        $('.small-box.bg-olive .inner h3').eq(1).text(formatNumber(res.statistics.total_account_paid));
+                    }
+                    
+                    // Update Pending Payment
+                    if (res.statistics.total_pending !== undefined) {
+                        $('.small-box.bg-yellow .inner h3').eq(1).text(formatNumber(res.statistics.total_pending));
+                    }
+                    
+                    // Update Total Profit
+                    if (res.statistics.total_profit !== undefined) {
+                        $('.small-box.bg-purple .inner h3').eq(2).text(formatNumber(res.statistics.total_profit));
+                    }
+                }
+                
+                // Update Top Selling Products
+                if (res.top_selling_products && Array.isArray(res.top_selling_products)) {
+                    updateTopSellingProducts(res.top_selling_products);
+                }
+                
+                // Update Low Stock Products
+                if (res.low_stock_products && Array.isArray(res.low_stock_products)) {
+                    updateLowStockProducts(res.low_stock_products);
+                }
+                
+                // Update total_invoice for the custom calculations (Cash, Account, Pending)
+                if (res.total_invoice) {
+                    window.totalInvoiceData = res.total_invoice; // Store globally if needed
+                    updatePaymentStats(res.total_invoice);
+                }
+                
+                console.log('Dashboard updated successfully');
+            },
+            error: function(xhr, status, error) {
+                console.error('=== AJAX ERROR ===');
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Response Text:', xhr.responseText);
+                console.error('Status Code:', xhr.status);
+                
+                let errorMessage = 'Error loading data';
+                
+                // Parse error response if possible
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {
+                    // If not JSON, use status text
+                    if (xhr.status === 404) {
+                        errorMessage = 'Dashboard route not found';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'Server error - check logs';
+                    }
+                }
+                
+                // Show error on chart
+                const canvas = document.getElementById('salesChart');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    destroyChart();
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = '#f00';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Error: ' + errorMessage, canvas.width/2, canvas.height/2);
+                }
+                
+                alert('Failed to load dashboard data: ' + errorMessage);
+            },
+            complete: function() {
+                console.log('=== AJAX COMPLETE ===');
+                $btn.text(originalText).prop('disabled', false);
+            }
+        });
+    });
+
+    // REST OF YOUR EXISTING FUNCTIONS (keep all your other functions as they were)
+    // Payment status change handler
+    $(document).on('change', '#payment_status', function () {
+        const status = $(this).val();
+        const $receivedAmountGroup = $('#received_amount_group');
+
+        if (status === 'partial') {
+            $receivedAmountGroup.show();
+        } else {
+            $receivedAmountGroup.hide();
+            $('input[name="received_amount"]').val(0);
+        }
+    });
+
+    // Quantity input handler
+    $(document).on('input', '.qty-input', function () {
+        const row = $(this).closest('tr');
+        const maxStock = parseInt($(this).data('max-stock')) || 0;
+        let qty = parseInt($(this).val()) || 1;
+
+        if (qty > maxStock) {
+            qty = maxStock;
+            $(this).val(qty);
+            alert(`Maximum available stock is ${maxStock}`);
+        }
+
+        const price = parseFloat(row.find('input[name$="[price]"]').val()) || 0;
+        const lineTotal = (price * qty).toFixed(2);
+        row.find('.line-total').text(lineTotal);
+        updateSubTotal();
+    });
+
+    // Remove row handler
+    $(document).on('click', '.remove-row', function () {
+        $(this).closest('tr').remove();
+        updateSubTotal();
+    });
+
+    // Resource ID change handler
+    $(document).on('change', '#resource_id', function () {
+        const discount = $(this).find(':selected').data('discount');
+        $('#discount_amount').val(discount ?? 0);
+    });
 });
 
-// Move addForm function outside of DOMContentLoaded
+// Keep ALL your existing functions below this line exactly as they were
+// addForm, generateInvoiceCode, referenceChanged, loadSelect2, createProductSelect, 
+// addProductRow, escapeHtml, updateSubTotal, editForm, deleteData, viewForm, 
+// viewFormDownload, invoiceResource
+
 function addForm(url) {
     const $modal = $('#modal-form');
-
     $modal.modal('show');
     $modal.find('.modal-title').text('Add Invoice');
 
@@ -425,7 +870,7 @@ function addForm(url) {
     $form.attr('action', url);
     $form.find('[name=_method]').val('post');
     $('#products_table tbody').empty();
-    // Add or update hidden input to indicate dashboard source
+    
     let $sourceInput = $form.find('input[name="from_dashboard"]');
     if ($sourceInput.length === 0) {
         $form.append('<input type="hidden" name="from_dashboard" value="1">');
@@ -433,15 +878,11 @@ function addForm(url) {
         $sourceInput.val('1');
     }
 
-    // Generate & set the invoice code
     const code = generateInvoiceCode();
     $form.find('#invoice_code').val(formatInvoiceCode(code, 'INV-'));
-
-    // Focus whatever field you prefer next:
     $form.find('[name=invoice_reference]').focus();
 }
 
-// Move generateInvoiceCode function outside of DOMContentLoaded
 function generateInvoiceCode() {
     const array = new Uint32Array(1);
     window.crypto.getRandomValues(array);
@@ -449,12 +890,10 @@ function generateInvoiceCode() {
     return String(num).padStart(6, '0');
 }
 
-// Optional: if you want a prefix like INV-123456
 function formatInvoiceCode(code, prefix = '') {
     return prefix ? `${prefix}${code}` : code;
 }
 
-// Move referenceChanged function outside of DOMContentLoaded
 function referenceChanged(select) {
     const value = select.value;
     const referenceGroup = $('#reference_id_group');
@@ -463,7 +902,7 @@ function referenceChanged(select) {
 
     subTotalInput.val(0);
     referenceContainer.empty();
-    productStockMap = {}; // Reset stock map
+    productStockMap = {};
 
     if (value === 'product') {
         $('#quantity_group').hide();
@@ -471,70 +910,17 @@ function referenceChanged(select) {
         $('#products_table_group').show();
         subTotalInput.prop('readonly', true);
 
-        $.get('{{ route('invoice.product') }}')
+        $.get('{{ route("invoice.product") }}')
             .done(res => {
-                let selectEl = $('<select>', {
-                    class: 'form-control',
-                    id: 'product_select'
-                });
-
-                selectEl.append('<option value="">Select Product</option>');
-
-                res.forEach(item => {
-                    const availableStock = item.stock ? item.stock.stock : 0;
-                    // Store stock data for validation
-                    productStockMap[item.product_id] = { availableStock };
-
-                    selectEl.append(`
-                        <option value="${item.product_id}"
-                            data-name="${item.product_name}"
-                            data-price="${item.selling_price}"
-                            data-stock="${availableStock}"
-                            data-code="${item.product_code}"
-                            data-unit="${item.unit}"
-                            data-brand="${item.brand}"
-                            data-variant="${item.variant}">
-                            ${item.product_name} (RS ${item.selling_price}) - Stock: ${availableStock}
-                        </option>
-                    `);
-                });
-
-                referenceContainer.append(selectEl);
-                referenceGroup.show();
-
-                selectEl.on('change', function () {
-                    const opt = $(this).find(':selected');
-                    if (!opt.val()) return;
-
-                    const productId = opt.val();
-                    const availableStock = parseInt(opt.data('stock')) || 0;
-                    const requestedQty = parseInt($('#temp_quantity').val()) || 1;
-
-                    // Validate stock availability
-                    if (requestedQty > availableStock) {
-                        alert(`Insufficient stock!\n\nProduct: ${opt.data('name')}\nAvailable: ${availableStock}\nRequested: ${requestedQty}`);
-                        $(this).val('');
-                        return;
-                    }
-
-                    const product = {
-                        id: productId,
-                        code: opt.data('code') || '',
-                        name: opt.data('name'),
-                        price: Number(opt.attr('data-price')) || 0,
-                        qty: requestedQty,
-                        availableStock: availableStock,
-                        unit: opt.data('unit') || '',
-                        brand: opt.data('brand') || '',
-                        variant: opt.data('variant') || ''
-                    };
-
-                    addProductRow(product);
-                    $(this).val('');
-                });
+                if (typeof $.fn.select2 === 'undefined') {
+                    loadSelect2(() => createProductSelect(res));
+                } else {
+                    createProductSelect(res);
+                }
             })
             .fail(() => {
                 alert('Failed to load products');
+                referenceContainer.html('<span class="text-danger">Failed to load products</span>');
             });
     } else {
         $('#quantity_group').show();
@@ -547,40 +933,123 @@ function referenceChanged(select) {
     }
 }
 
+function loadSelect2(callback) {
+    if ($('#select2-css').length === 0) {
+        $('head').append('<link id="select2-css" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />');
+    }
+    
+    if (typeof $.fn.select2 === 'undefined') {
+        $.getScript('https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', callback);
+    } else {
+        callback();
+    }
+}
+
+function createProductSelect(res) {
+    if (!res || !Array.isArray(res) || res.length === 0) {
+        $('#reference_id_container').html('<span class="text-warning">No products available</span>');
+        return;
+    }
+    
+    let selectEl = $('<select>', {
+        class: 'form-control',
+        id: 'product_select',
+        style: 'width:100%'
+    });
+
+    selectEl.append('<option value="">Select Product</option>');
+
+    res.forEach(item => {
+        const availableStock = item.stock ? (item.stock.stock || 0) : 0;
+        productStockMap[item.product_id] = { availableStock };
+        
+        selectEl.append(`
+            <option value="${item.product_id}"
+                data-name="${item.product_name || ''}"
+                data-price="${item.selling_price || 0}"
+                data-stock="${availableStock}"
+                data-code="${item.product_code || ''}"
+                data-unit="${item.unit || ''}"
+                data-brand="${item.brand || ''}"
+                data-variant="${item.variant || ''}">
+                ${item.product_name || 'Unknown'} (${formatCurrency(item.selling_price || 0)}) - Stock: ${availableStock}
+            </option>
+        `);
+    });
+
+    $('#reference_id_container').append(selectEl);
+    $('#reference_id_group').show();
+
+    selectEl.select2({
+        dropdownParent: $('#reference_id_group'),
+        placeholder: 'Select Product',
+        allowClear: true,
+        width: 'resolve'
+    });
+
+    selectEl.on('select2:select', function (e) {
+        const opt = $(this).find(':selected');
+        if (!opt.val()) return;
+
+        const productId = opt.val();
+        const availableStock = parseInt(opt.data('stock')) || 0;
+        const requestedQty = parseInt($('#temp_quantity').val()) || 1;
+
+        if (requestedQty > availableStock) {
+            alert(`Insufficient stock!\n\nProduct: ${opt.data('name')}\nAvailable: ${availableStock}\nRequested: ${requestedQty}`);
+            $(this).val('').trigger('change');
+            return;
+        }
+
+        const product = {
+            id: productId,
+            code: opt.data('code') || '',
+            name: opt.data('name'),
+            price: Number(opt.data('price')) || 0,
+            qty: requestedQty,
+            availableStock: availableStock,
+            unit: opt.data('unit') || '',
+            brand: opt.data('brand') || '',
+            variant: opt.data('variant') || ''
+        };
+
+        addProductRow(product);
+        $(this).val('').trigger('change');
+    });
+}
+
 function addProductRow(product) {
-    // Check if product already exists in table
+    product.price = product.price || 0;
+    product.qty = product.qty || 1;
+    product.availableStock = product.availableStock || 0;
+    
     const existingRow = $(`#products_table tbody tr[data-id="${product.id}"]`);
     
     if (existingRow.length > 0) {
-        // Product exists, validate total quantity
         const qtyInput = existingRow.find('.qty-input');
         const currentQty = parseInt(qtyInput.val()) || 1;
         const newQty = currentQty + product.qty;
 
-        // Validate new total doesn't exceed stock
         if (newQty > product.availableStock) {
             alert(`Cannot add more!\n\nProduct: ${product.name}\nAvailable Stock: ${product.availableStock}\nCurrent Qty: ${currentQty}\nRequested Add: ${product.qty}\nTotal Would Be: ${newQty}`);
             return;
         }
 
-        qtyInput.val(newQty);
-        qtyInput.trigger('input');
+        qtyInput.val(newQty).trigger('input');
         return;
     }
 
-    // Product doesn't exist, create new row
     const rowTotal = product.price * product.qty;
-
     const row = `
         <tr data-id="${product.id}" data-stock="${product.availableStock}">
-            <td>${product.code || 'N/A'}</td>
-            <td>${product.name}
+            <td>${escapeHtml(product.code) || 'N/A'}</td>
+            <td>${escapeHtml(product.name) || 'N/A'}
                 <input type="hidden" name="products[${product.id}][id]" value="${product.id}">
             </td>
-            <td>${product.brand || 'N/A'}</td>
-            <td>${product.variant || 'N/A'}</td>
-            <td>${product.unit || 'N/A'}</td>
-            <td>${product.price}
+            <td>${escapeHtml(product.brand) || 'N/A'}</td>
+            <td>${escapeHtml(product.variant) || 'N/A'}</td>
+            <td>${escapeHtml(product.unit) || 'N/A'}</td>
+            <td>${formatCurrency(product.price)}
                 <input type="hidden" name="products[${product.id}][price]" value="${product.price}">
             </td>
             <td>
@@ -600,56 +1069,43 @@ function addProductRow(product) {
     updateSubTotal();
 }
 
+function escapeHtml(text) {
+    if (!text) return text;
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
 function updateSubTotal() {
     let total = 0;
     $('#products_table tbody tr').each(function () {
-        total += parseFloat($(this).find('.line-total').text());
+        total += parseFloat($(this).find('.line-total').text()) || 0;
     });
     $('input[name="sub_total"]').val(total.toFixed(2));
-        
-    // Update table footer total
     $('#table-total').text(total.toFixed(2));
 }
-
-$(document).on('input', '.qty-input', function () {
-    const row = $(this).closest('tr');
-    const maxStock = parseInt($(this).data('max-stock')) || 0;
-    let qty = parseInt($(this).val()) || 1;
-
-    // Enforce max stock limit
-    if (qty > maxStock) {
-        qty = maxStock;
-        $(this).val(qty);
-        alert(`Maximum available stock is ${maxStock}`);
-    }
-
-    const price = parseFloat(row.find('input[name$="[price]"]').val());
-    row.find('.line-total').text((price * qty).toFixed(2));
-    updateSubTotal();
-});
-
-$(document).on('click', '.remove-row', function () {
-    $(this).closest('tr').remove();
-    updateSubTotal();
-});
 
 function editForm(url) {
     $('#modal-form').modal('show');
     $('#modal-form .modal-title').text('Edit Invoice');
-
     $('#modal-form form')[0].reset();
     $('#modal-form form').attr('action', url);
     $('#modal-form [name=_method]').val('put');
 
     $.get(url)
         .done((res) => {
-            $('#modal-form [name=invoice_reference]').val(res.invoice_reference);
-            $('#modal-form [name=reference_id]').val(res.reference_id);
-            $('#modal-form [name=sub_total]').val(res.sub_total);
-            $('#modal-form [name=tax_amount]').val(res.tax_amount);
-            $('#modal-form [name=discount_amount]').val(res.discount_amount);
-            $('#modal-form [name=payment_received]').val(res.payment_received);
-            $('#modal-form [name=payment_status]').val(res.payment_status);
+            $('#modal-form [name=invoice_reference]').val(res.invoice_reference || '');
+            $('#modal-form [name=reference_id]').val(res.reference_id || '');
+            $('#modal-form [name=sub_total]').val(res.sub_total || 0);
+            $('#modal-form [name=tax_amount]').val(res.tax_amount || 0);
+            $('#modal-form [name=discount_amount]').val(res.discount_amount || 0);
+            $('#modal-form [name=payment_received]').val(res.payment_received || '');
+            $('#modal-form [name=payment_status]').val(res.payment_status || '');
         })
         .fail(() => {
             alert('Unable to display data');
@@ -659,11 +1115,13 @@ function editForm(url) {
 function deleteData(url) {
     if (confirm('Are you sure you want to delete this invoice?')) {
         $.post(url, {
-            '_token': $('[name=csrf-token]').attr('content'),
+            '_token': $('meta[name="csrf-token"]').attr('content'),
             '_method': 'delete'
         })
         .done(() => {
-            table.ajax.reload(null, false);
+            if (typeof table !== 'undefined' && table) {
+                table.ajax.reload(null, false);
+            }
         })
         .fail(() => {
             alert('Unable to delete data');
@@ -672,20 +1130,20 @@ function deleteData(url) {
 }
 
 function viewForm(invoiceId) {
-    // Generate URL dynamically
     const url = `/invoice/view/${invoiceId}`;
-    window.open(url, '_blank'); // opens in new tab
+    window.open(url, '_blank');
 }
 
 function viewFormDownload(invoiceId) {
-    // Open invoice in same tab or new tab with PDF print mode
     const url = `/invoice/view/${invoiceId}?pdf=1`;
-    const w = window.open(url, '_blank'); // open in new tab
-
-    // Wait for page to load, then call print
-    w.onload = function() {
-        w.print(); // triggers browser PDF dialog
-    };
+    const w = window.open(url, '_blank');
+    if (w) {
+        w.onload = function() {
+            setTimeout(() => {
+                w.print();
+            }, 500);
+        };
+    }
 }
 
 function invoiceResource(select) {
@@ -693,7 +1151,6 @@ function invoiceResource(select) {
     const $group = $('#resource_id_group');
     const $container = $('#resource_id_container');
 
-    // Reset
     $container.empty();
     $group.hide();
 
@@ -706,7 +1163,6 @@ function invoiceResource(select) {
         type: "GET",
         dataType: "json",
         success: function (res) {
-            // Create select element
             const $select = $('<select>', {
                 class: 'form-control',
                 id: 'resource_id',
@@ -720,9 +1176,9 @@ function invoiceResource(select) {
                     $select.append(
                         $('<option>', {
                             value: item.id,
-                            text: item.name,
+                            text: item.name || 'Unknown',
                             'data-name': item.name,
-                            'data-discount': item.discount
+                            'data-discount': item.discount || 0
                         })
                     );
                 });
@@ -732,32 +1188,145 @@ function invoiceResource(select) {
 
             $container.append($select);
         },
-        error: function () {
-            $container.append(
-                '<span class="text-danger">Failed to load customers</span>'
-            );
+        error: function() {
+            $container.append('<span class="text-danger">Failed to load customers</span>');
         }
     });
 }
 
-$(document).on('change', '#resource_id', function () {
-    const discount = $(this).find(':selected').data('discount');
-
-    $('#discount_amount').val(discount ?? 0);
+// Handle window resize
+$(window).on('resize', function() {
+    if (salesChart && typeof salesChart.resize === 'function') {
+        salesChart.resize();
+    }
 });
 
-$(document).ready(function() {
-    $(document).on('change', '#payment_status', function () {
-        const status = $(this).val();
-        const $receivedAmountGroup = $('#received_amount_group');
+// Add these helper functions after your existing code
 
-        if (status === 'partial') {
-            $receivedAmountGroup.show();
-        } else {
-            $receivedAmountGroup.hide();
-            $('input[name="received_amount"]').val(0);
+function formatNumber(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return '0';
+    }
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(value);
+}
+
+function updateTopSellingProducts(products) {
+    const $container = $('.products-list.product-list-in-box');
+    if (!$container.length) return;
+    
+    $container.empty();
+    
+    if (!products || products.length === 0) {
+        $container.append(`
+            <li class="item">
+                <div class="product-info">
+                    <span class="product-title">No sales data available</span>
+                </div>
+            </li>
+        `);
+        return;
+    }
+    
+    products.forEach((product, index) => {
+        let medal = '';
+        if (index === 0) medal = '🥇';
+        else if (index === 1) medal = '🥈';
+        else if (index === 2) medal = '🥉';
+        else medal = `#${index + 1}`;
+        
+        const productName = product.item_name || product.product_name || 'N/A';
+        const quantitySold = product.total_quantity_sold || 0;
+        
+        $container.append(`
+            <li class="item">
+                <div class="product-info">
+                    <span class="product-title">
+                        ${medal} ${escapeHtml(productName)}
+                        <span class="label label-success pull-right">
+                            ${quantitySold} sold
+                        </span>
+                    </span>
+                </div>
+            </li>
+        `);
+    });
+}
+
+function updateLowStockProducts(products) {
+    const $tbody = $('.table-bordered tbody');
+    if (!$tbody.length) return;
+    
+    $tbody.empty();
+    
+    if (!products || products.length === 0) {
+        $tbody.append(`
+            <tr>
+                <td colspan="3" class="text-center">No low stock products</td>
+            </tr>
+        `);
+        return;
+    }
+    
+    products.forEach(product => {
+        const productName = product.product_name || product.name || 'N/A';
+        const stock = product.stock || 0;
+        const minStock = product.minimum_stock || 0;
+        
+        $tbody.append(`
+            <tr>
+                <td>${escapeHtml(productName)}</td>
+                <td>${stock}</td>
+                <td>${minStock}</td>
+            </tr>
+        `);
+    });
+}
+
+function updatePaymentStats(invoices) {
+    if (!invoices || !Array.isArray(invoices)) return;
+    
+    // Calculate Cash Paid
+    const totalCashPaid = invoices
+        .filter(inv => inv.payment_received === 'cash' && inv.payment_status === 'paid')
+        .reduce((sum, inv) => sum + (parseFloat(inv.grand_total) || 0), 0);
+    
+    // Calculate Account Paid
+    const totalAccountPaid = invoices
+        .filter(inv => !['cash', 'other'].includes(inv.payment_received) && inv.payment_status === 'paid')
+        .reduce((sum, inv) => sum + (parseFloat(inv.grand_total) || 0), 0);
+    
+    // Calculate Pending Payment
+    const totalPending = invoices
+        .filter(inv => inv.payment_status === 'partial')
+        .reduce((sum, inv) => sum + (parseFloat(inv.remaining_amount) || 0), 0);
+    
+    // Update the boxes
+    $('.small-box.bg-primary .inner h3').eq(1).text(formatNumber(totalCashPaid));
+    $('.small-box.bg-olive .inner h3').eq(1).text(formatNumber(totalAccountPaid));
+    $('.small-box.bg-yellow .inner h3').eq(1).text(formatNumber(totalPending));
+}
+
+function updateChartHeaderDateRange() {
+    const startDate = $('#dashboard_date_start').val();
+    const endDate = $('#dashboard_date_end').val();
+    
+    if (!startDate || !endDate) return;
+    
+    // Format dates to display format (d/m/Y)
+    const formattedStart = formatDateDMY(startDate);
+    const formattedEnd = formatDateDMY(endDate);
+    
+    // Update the chart header
+    const $header = $('.box-header .box-title');
+    $header.each(function() {
+        const text = $(this).text();
+        if (text.includes('Income Chart')) {
+            $(this).html(`Income Chart ${formattedStart} - ${formattedEnd}`);
         }
     });
-});
+}
 </script>
 @endpush

@@ -52,16 +52,16 @@
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="unit" class="col-lg-2 col-lg-offset-1 control-label">Item Unit</label>
+                        <label for="unit" class="col-lg-2 col-lg-offset-1 control-label">Item Unit (measurement)</label>
                         <div class="col-lg-6">
-                            <input type="text" name="unit" id="unit" class="form-control" required>
+                            <input type="text" name="unit" id="unit" class="form-control" placeholder="example: meter, fit, yard, dozen, piece" required>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="variant" class="col-lg-2 col-lg-offset-1 control-label">Item Variant</label>
+                        <label for="variant" class="col-lg-2 col-lg-offset-1 control-label">Item Variant (type/size)</label>
                         <div class="col-lg-6">
-                            <input type="text" name="variant" id="variant" class="form-control" required>
+                            <input type="text" name="variant" id="variant" class="form-control" placeholder="example: wire 3/29,7/29 | pipe 25mm, 50mm" required>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>

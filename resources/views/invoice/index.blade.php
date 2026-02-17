@@ -48,6 +48,24 @@
 @endsection
 
 @push('scripts')
+
+<style>
+    .select2-container .select2-selection--single {
+        height: 40px !important;
+        min-height: 35px !important;
+        line-height: 35px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 35px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 35px !important;
+    }
+    /* Make select2 option text white on hover */
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        color: #fff !important;
+    }
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
@@ -137,7 +155,6 @@
         productStockMap = {}; // Reset stock map
 
         if (value === 'product') {
-
             $('#quantity_group').hide();
             $('#sub_total_group').hide();
             $('#products_table_group').show();
@@ -145,70 +162,89 @@
 
             $.get('{{ route('invoice.product') }}')
                 .done(res => {
+                    // Load Select2 CSS/JS if not already loaded
+                    if (typeof $.fn.select2 === 'undefined') {
+                        // CDN fallback
+                        $('head').append('<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />');
+                        $.getScript('https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', function() {
+                            createProductSelect(res);
+                        });
+                    } else {
+                        createProductSelect(res);
+                    }
 
-                    let selectEl = $('<select>', {
-                        class: 'form-control',
-                        id: 'product_select'
-                    });
+                    function createProductSelect(res) {
+                        let selectEl = $('<select>', {
+                            class: 'form-control',
+                            id: 'product_select',
+                            style: 'width:100%'
+                        });
 
-                    selectEl.append('<option value="">Select Product</option>');
+                        selectEl.append('<option value="">Select Product</option>');
 
-                    res.forEach(item => {
-                        const availableStock = item.stock ? item.stock.stock : 0;
-                        
-                        // Store stock data for validation
-                        productStockMap[item.product_id] = {
-                            available: availableStock,
-                            minimum: item.stock ? item.stock.minimum_stock : 0
-                        };
+                        res.forEach(item => {
+                            const availableStock = item.stock ? item.stock.stock : 0;
+                            // Store stock data for validation
+                            productStockMap[item.product_id] = {
+                                available: availableStock,
+                                minimum: item.stock ? item.stock.minimum_stock : 0
+                            };
+                            selectEl.append(`
+                                <option value="${item.product_id}"
+                                    data-name="${item.product_name}"
+                                    data-price="${item.selling_price}"
+                                    data-stock="${availableStock}"
+                                    data-code="${item.product_code}"
+                                    data-unit="${item.unit}"
+                                    data-brand="${item.brand}"
+                                    data-variant="${item.variant}">
+                                    ${item.product_name} (RS ${item.selling_price}) - Stock: ${availableStock}
+                                </option>
+                            `);
+                        });
 
-                        selectEl.append(`
-                            <option value="${item.product_id}"
-                                data-name="${item.product_name}"
-                                data-price="${item.selling_price}"
-                                data-stock="${availableStock}"
-                                data-code="${item.product_code}"
-                                data-unit="${item.unit}"
-                                data-brand="${item.brand}"
-                                data-variant="${item.variant}">
-                                ${item.product_name} (RS ${item.selling_price}) - Stock: ${availableStock}
-                            </option>
-                        `);
-                    });
+                        referenceContainer.append(selectEl);
+                        referenceGroup.show();
 
-                    referenceContainer.append(selectEl);
-                    referenceGroup.show();
+                        // Initialize Select2 for search by name
+                        selectEl.select2({
+                            dropdownParent: referenceGroup,
+                            placeholder: 'Select Product',
+                            allowClear: true,
+                            width: 'resolve'
+                        });
 
-                    selectEl.on('change', function () {
-                        const opt = $(this).find(':selected');
-                        if (!opt.val()) return;
+                        selectEl.on('select2:select', function (e) {
+                            const opt = $(this).find(':selected');
+                            if (!opt.val()) return;
 
-                        const productId = opt.val();
-                        const availableStock = parseInt(opt.data('stock')) || 0;
-                        const requestedQty = parseInt($('#temp_quantity').val()) || 1;
+                            const productId = opt.val();
+                            const availableStock = parseInt(opt.data('stock')) || 0;
+                            const requestedQty = parseInt($('#temp_quantity').val()) || 1;
 
-                        // Validate stock availability
-                        if (requestedQty > availableStock) {
-                            alert(`Insufficient stock!\n\nProduct: ${opt.data('name')}\nAvailable: ${availableStock}\nRequested: ${requestedQty}`);
-                            $(this).val('');
-                            return;
-                        }
+                            // Validate stock availability
+                            if (requestedQty > availableStock) {
+                                alert(`Insufficient stock!\n\nProduct: ${opt.data('name')}\nAvailable: ${availableStock}\nRequested: ${requestedQty}`);
+                                $(this).val('').trigger('change');
+                                return;
+                            }
 
-                        const product = {
-                            id: productId,
-                            code: opt.data('code') || '',
-                            name: opt.data('name'),
-                            price: parseFloat(opt.data('price')),
-                            qty: requestedQty,
-                            availableStock: availableStock,
-                            unit: opt.data('unit') || '',
-                            brand: opt.data('brand') || '',
-                            variant: opt.data('variant') || ''
-                        };
+                            const product = {
+                                id: productId,
+                                code: opt.data('code') || '',
+                                name: opt.data('name'),
+                                price: parseFloat(opt.data('price')),
+                                qty: requestedQty,
+                                availableStock: availableStock,
+                                unit: opt.data('unit') || '',
+                                brand: opt.data('brand') || '',
+                                variant: opt.data('variant') || ''
+                            };
 
-                        addProductRow(product);
-                        $(this).val('');
-                    });
+                            addProductRow(product);
+                            $(this).val('').trigger('change');
+                        });
+                    }
                 })
                 .fail(() => {
                     alert('Failed to load products');

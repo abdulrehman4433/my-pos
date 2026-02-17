@@ -18,8 +18,16 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
 {
+    // Parse date range from request, fallback to current month
+    $tanggal_awal = $request->input('date_start');
+    $tanggal_akhir = $request->input('date_end');
+    if (!$tanggal_awal || !$tanggal_akhir) {
+        $tanggal_awal = date('Y-m-01');
+        $tanggal_akhir = date('Y-m-d');
+    }
+
     // Basic counts
     $kategori   = Kategori::count();
     $produk     = Produk::count();
@@ -27,9 +35,9 @@ class DashboardController extends Controller
     $member     = Member::count();
 
     // Totals
-    $penjualan  = Invoice::sum('grand_total');
-    $total_invoice = Invoice::all();
-    $pengeluaran = Pengeluaran::sum('amount');
+    $penjualan  = Invoice::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->sum('grand_total');
+    $total_invoice = Invoice::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->get();
+    $pengeluaran = Pengeluaran::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->sum('amount');
     $pembelian   = Produk::sum('purchase_price');
 
     // Low stock products
@@ -42,6 +50,7 @@ class DashboardController extends Controller
         ->join('invoices as i', 'ii.invoice_id', '=', 'i.id')
         ->join('products as p', 'ii.item_id', '=', 'p.product_id')
         ->join('product_stocks as ps', 'p.product_id', '=', 'ps.product_id')
+        ->whereBetween('i.created_at', [$tanggal_awal, $tanggal_akhir])
         ->select(
             'i.id as invoice_id',
             'i.invoice_code',
@@ -59,7 +68,8 @@ class DashboardController extends Controller
     });
 
     // Top selling products
-    $top_selling_products = InvoiceItem::select(
+    $top_selling_products = InvoiceItem::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])
+        ->select(
             'item_name',
             DB::raw('SUM(quantity) as total_quantity_sold')
         )
@@ -69,25 +79,72 @@ class DashboardController extends Controller
         ->get();
 
     // Daily revenue vs expenses
-    $tanggal_awal  = date('Y-m-01');
-    $tanggal_akhir = date('Y-m-d');
-
     $data_tanggal    = [];
     $data_pendapatan = [];
-
-    while (strtotime($tanggal_awal) <= strtotime($tanggal_akhir)) {
-        $data_tanggal[] = (int) substr($tanggal_awal, 8, 2);
-
-        $total_penjualan   = Invoice::whereDate('created_at', $tanggal_awal)->sum('grand_total');
-        $total_pengeluaran = Pengeluaran::whereDate('created_at', $tanggal_awal)->sum('amount');
-
+    $date = $tanggal_awal;
+    while (strtotime($date) <= strtotime($tanggal_akhir)) {
+        $data_tanggal[] = date('d/m/Y', strtotime($date));
+        $total_penjualan   = Invoice::whereDate('created_at', $date)->sum('grand_total');
+        $total_pengeluaran = Pengeluaran::whereDate('created_at', $date)->sum('amount');
         $pendapatan = $total_penjualan - $total_pengeluaran;
         $data_pendapatan[] = $pendapatan;
-
-        $tanggal_awal = date('Y-m-d', strtotime("+1 day", strtotime($tanggal_awal)));
+        $date = date('Y-m-d', strtotime("+1 day", strtotime($date)));
     }
 
-    $tanggal_awal = date('Y-m-01');
+    // Calculate payment statistics
+    $totalCashPaid = $total_invoice
+        ->where('payment_received', 'cash')
+        ->where('payment_status', 'paid')
+        ->sum(function ($invoice) {
+            return (float) ($invoice->grand_total ?? 0);
+        });
+
+    $totalAccountPaid = $total_invoice
+        ->whereNotIn('payment_received', ['cash', 'other'])
+        ->where('payment_status', 'paid')
+        ->sum('grand_total');
+
+    $totalPending = $total_invoice
+        ->where('payment_status', 'partial')
+        ->sum(function ($invoice) {
+            return (float) ($invoice->remaining_amount ?? 0);
+        });
+
+    // Prepare statistics array with ALL data needed for UI
+    $statistics = [
+        'total_invoices' => $penjualan,
+        'total_categories' => $kategori,
+        'total_products' => $produk,
+        'total_members' => $member,
+        'total_suppliers' => $supplier,
+        'total_sales' => $penjualan,
+        'total_expenses' => $pengeluaran,
+        'total_purchases' => $pembelian,
+        'total_cash_paid' => $totalCashPaid,
+        'total_account_paid' => $totalAccountPaid,
+        'total_pending' => $totalPending,
+        'total_profit' => $totalProfit,
+    ];
+
+    // If AJAX, return comprehensive JSON for dashboard update
+    if ($request->ajax()) {
+        return response()->json([
+            'data_tanggal' => $data_tanggal,
+            'data_pendapatan' => $data_pendapatan,
+            'statistics' => $statistics,
+            'top_selling_products' => $top_selling_products,
+            'low_stock_products' => $lowStockProducts,
+            'total_invoice' => $total_invoice,
+            'penjualan' => $penjualan,
+            'pengeluaran' => $pengeluaran,
+            'pembelian' => $pembelian,
+            'totalProfit' => $totalProfit,
+            'kategori' => $kategori,
+            'produk' => $produk,
+            'supplier' => $supplier,
+            'member' => $member,
+        ]);
+    }
 
     // Render view based on access level
     if (auth()->user()->access_level == 1) {
