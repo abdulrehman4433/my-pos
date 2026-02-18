@@ -44,9 +44,6 @@ class Produk extends Model
     
     public function getProfitPercentageAttribute()
     {
-        // if ($this->harga_beli > 0) {
-        //     return ($this->profit / $this->harga_beli) * 100;
-        // }
         return 0;
     }
 

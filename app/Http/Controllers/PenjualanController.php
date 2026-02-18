@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Models\Invoice;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PDF;
 
 class PenjualanController extends Controller
@@ -130,13 +131,53 @@ class PenjualanController extends Controller
     }
 
     public function destroy($id)
-    {
-        $invoice = Invoice::findOrFail($id);
+{
+    DB::beginTransaction();
+
+    try {
+        $invoice = Invoice::with('items')->findOrFail($id);
+
+        foreach ($invoice->items as $item) {
+
+            // If item is product
+            if (!is_null($item->item_id)) {
+
+                // Update products table stock
+                DB::table('products')
+                    ->where('product_id', $item->item_id)
+                    ->increment('stock', $item->quantity);
+
+                // Update product_stocks table
+                DB::table('product_stocks')
+                    ->where('product_id', $item->item_id)
+                    ->increment('stock', $item->quantity);
+            }
+        }
+
+        // Delete invoice items
         $invoice->items()->delete();
+
+        // Delete invoice
         $invoice->delete();
 
-        return response(null, 204);
+        DB::commit();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Invoice deleted and stock restored successfully.'
+        ], 200);
+
+    } catch (\Exception $e) {
+
+        DB::rollBack();
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Something went wrong!',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function selesai()
     {

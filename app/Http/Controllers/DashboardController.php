@@ -15,6 +15,7 @@ use App\Models\Expense;
 use App\Models\InvoiceItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -27,6 +28,8 @@ class DashboardController extends Controller
         $tanggal_awal = date('Y-m-01');
         $tanggal_akhir = date('Y-m-d');
     }
+    $tanggal_awal  = Carbon::parse($tanggal_awal)->startOfDay();
+    $tanggal_akhir = Carbon::parse($tanggal_akhir)->endOfDay();
 
     // Basic counts
     $kategori   = Kategori::count();
@@ -41,9 +44,7 @@ class DashboardController extends Controller
     $pembelian   = Produk::sum('purchase_price');
 
     // Low stock products
-    $lowStockProducts = ProductStock::whereColumn('stock', '<=', 'minimum_stock')
-        ->with('product')
-        ->get();
+    $lowStockProducts = ProductStock::with('product')->whereColumn('stock', '<=', 'minimum_stock')->get();
 
     // Profit report (join product_stocks for stock info)
     $profitReport = DB::table('invoice_items as ii')

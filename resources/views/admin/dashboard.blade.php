@@ -314,7 +314,7 @@
                     <tbody>
                         @forelse ($lowStockProducts ?? [] as $product)
                         <tr>
-                            <td>{{ $product->product_name ?? $product->name ?? 'N/A' }}</td>
+                            <td>{{ $product->product->product_name ?? $product->product->product_name ?? 'N/A' }}</td>
                             <td>{{ $product->stock ?? 0 }}</td>
                             <td>{{ $product->minimum_stock ?? 0 }}</td>
                         </tr>

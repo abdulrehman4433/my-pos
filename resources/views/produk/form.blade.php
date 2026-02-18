@@ -40,14 +40,14 @@
                     <div class="form-group row">
                         <label for="harga_beli" class="col-lg-2 col-lg-offset-1 control-label">Purchase Price Per Item</label>
                         <div class="col-lg-6">
-                            <input type="number" name="harga_beli" id="harga_beli" class="form-control" required>
+                            <input type="number" step="0.01" name="harga_beli" id="harga_beli" class="form-control" required>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="harga_jual" class="col-lg-2 col-lg-offset-1 control-label">Selling Price Per Item</label>
                         <div class="col-lg-6">
-                            <input type="number" name="harga_jual" id="harga_jual" class="form-control" required>
+                            <input type="number" step="0.01" name="harga_jual" id="harga_jual" class="form-control" required>
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
