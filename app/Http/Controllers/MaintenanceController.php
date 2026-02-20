@@ -52,8 +52,8 @@ class MaintenanceController extends Controller
                 })
                 ->addColumn('status', function ($maintenance) {
                     return $maintenance->is_active
-                        ? '<span class="badge badge-success">Active</span>'
-                        : '<span class="badge badge-secondary">Inactive</span>';
+                        ? '<span class="label label-success">Active</span>'
+                        : '<span class="label label-danger">Inactive</span>';
                 })
                 ->addColumn('created_at_formatted', function ($maintenance) {
                     return $maintenance->created_at

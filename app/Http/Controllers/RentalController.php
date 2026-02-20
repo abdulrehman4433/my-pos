@@ -68,12 +68,12 @@ class RentalController extends Controller
 
                 ->addColumn('status', function ($rental) {
                     switch ($rental->rental_status) {
-                        case 'returned':
-                            return '<span class="badge badge-success">Returned</span>';
-                        case 'active':
-                            return '<span class="badge badge-warning">Active</span>';
-                        case 'cancelled':
-                            return '<span class="badge badge-danger">Cancelled</span>';
+                        case 'ongoing':
+                            return '<span class="badge badge-success">Ongoing</span>';
+                        case 'completed':
+                            return '<span class="badge badge-info">Completed</span>';
+                        case 'overdue':
+                            return '<span class="badge badge-danger">Overdue</span>';
                         default:
                             return '<span class="badge badge-secondary">Pending</span>';
                     }
@@ -142,7 +142,7 @@ class RentalController extends Controller
             'rental_duration'       => 'required|string|max:50',
             'rental_start_date'     => 'required|date',
             'rental_end_date'       => 'required|date|after_or_equal:rental_start_date',
-            'rental_status'         => 'required|in:pending,ongoing,completed,overdue',
+            'rental_status'         => 'required|in:ongoing,completed,overdue',
         ]);
 
         if ($validator->fails()) {
@@ -246,7 +246,7 @@ class RentalController extends Controller
             'rental_duration'       => 'required|string|max:50',
             'rental_start_date'     => 'required|date',
             'rental_end_date'       => 'required|date|after_or_equal:rental_start_date',
-            'rental_status'         => 'required|in:pending,ongoing,completed,overdue',
+            'rental_status'         => 'required|in:ongoing,completed,overdue',
         ]);
 
         if ($validator->fails()) {
@@ -260,22 +260,24 @@ class RentalController extends Controller
         DB::beginTransaction();
 
         try {
-            // 🔹 Fetch product via ORM
-            $product = Produk::findOrFail($request->rental_product);
 
-            // 🔹 Update rental safely
+            // 🔹 Fetch product using ORM (same as store)
+            $product = Produk::where('product_id', $request->rental_product)
+                ->firstOrFail();
+
+            // 🔹 Update rental (aligned with store logic)
             $rental->update([
-                'rental_product_id'   => $product->product_id,
-                'rental_product'      => $product->rental_product,
-                'rental_person'       => $request->rental_person,
-                'rental_person_phone' => $request->rental_person_phone,
-                'rental_person_address' => $request->rental_person_address,
-                'rental_price'        => $request->rental_price,
-                'rental_duration'     => $request->rental_duration,
-                'rental_start_date'   => $request->rental_start_date,
-                'rental_end_date'     => $request->rental_end_date,
-                'rental_status'       => $request->rental_status,
-                'updated_by'          => Auth::id(),
+                'rental_product_id'      => $product->product_id,
+                'rental_product'         => $product->product_name, // ✅ correct column
+                'rental_person'          => $request->rental_person,
+                'rental_person_phone'    => $request->rental_person_phone,
+                'rental_person_address'  => $request->rental_person_address,
+                'rental_price'           => $request->rental_price,
+                'rental_duration'        => $request->rental_duration,
+                'rental_start_date'      => $request->rental_start_date,
+                'rental_end_date'        => $request->rental_end_date,
+                'rental_status'          => $request->rental_status,
+                'updated_by'             => Auth::id(),
             ]);
 
             DB::commit();
@@ -283,16 +285,18 @@ class RentalController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => 'Rental updated successfully.',
-                'data'    => $rental,
+                'data'    => $rental->fresh(), // 🔥 return fresh updated data
             ], 200);
 
         } catch (\Exception $e) {
+
             DB::rollBack();
 
             \Log::error('Error updating rental', [
                 'rental_id' => $id,
                 'error'     => $e->getMessage(),
                 'user_id'   => Auth::id(),
+                'request'   => $request->all(),
             ]);
 
             return response()->json([
@@ -302,6 +306,7 @@ class RentalController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Remove the specified resource from storage.

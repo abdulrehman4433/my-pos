@@ -92,7 +92,6 @@
                         <label for="rental_status" class="col-lg-2 col-lg-offset-1 control-label">Status</label>
                         <div class="col-lg-6">
                             <select name="rental_status" id="rental_status" class="form-control" required>
-                                <option value="pending">Pending</option>
                                 <option value="ongoing">Ongoing</option>
                                 <option value="completed">Completed</option>
                                 <option value="overdue">Overdue</option>
