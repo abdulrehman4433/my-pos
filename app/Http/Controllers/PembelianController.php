@@ -55,9 +55,9 @@ class PembelianController extends Controller
 
             ->addColumn('action', function ($pembelian) {
                 return '
-                    <div class="btn-group">
+                    <div class="btn-group btn-group-sm" role="group">
                         <button onclick="showDetail(`'. route('pembelian.show', $pembelian->purchase_id) .'`)"
-                            class="btn btn-xs btn-primary btn-flat">
+                            class="btn btn-xs btn-primary btn-flat" style="margin-right: 5px;">
                             <i class="fa fa-eye"></i>
                         </button>
                         <button onclick="deleteData(`'. route('pembelian.destroy', $pembelian->purchase_id) .'`)"
