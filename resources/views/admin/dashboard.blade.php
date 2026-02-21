@@ -972,7 +972,7 @@ function createProductSelect(res) {
                 data-unit="${item.unit || ''}"
                 data-brand="${item.brand || ''}"
                 data-variant="${item.variant || ''}">
-                ${item.product_name || 'Unknown'} (${formatCurrency(item.selling_price || 0)}) - Stock: ${availableStock}
+                ${item.product_name || 'Unknown'} (RS ${item.selling_price}) - Stock: ${availableStock}
             </option>
         `);
     });

@@ -41,7 +41,20 @@ class DashboardController extends Controller
     $penjualan  = Invoice::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->sum('grand_total');
     $total_invoice = Invoice::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->get();
     $pengeluaran = Pengeluaran::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->sum('amount');
-    $pembelian   = Produk::sum('purchase_price');
+    $pembelian = DB::table('products as p')
+        ->leftJoin('product_stocks as ps', 'ps.product_id', '=', 'p.product_id')
+        ->leftJoin(DB::raw('
+            (SELECT item_id, SUM(quantity) as total_sold 
+            FROM invoice_items 
+            GROUP BY item_id) as ii
+        '), 'ii.item_id', '=', 'p.product_id')
+        ->selectRaw('
+            SUM(
+                (COALESCE(ps.stock, 0) + COALESCE(ii.total_sold, 0)) 
+                * COALESCE(p.purchase_price, 0)
+            ) as total_purchase
+        ')
+        ->value('total_purchase');
 
     // Low stock products
     $lowStockProducts = ProductStock::with('product')->whereColumn('stock', '<=', 'minimum_stock')->get();

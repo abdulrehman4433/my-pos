@@ -17,10 +17,6 @@ Purchase
         background: #f0f0f0;
     }
 
-    .table-pembelian tbody tr:last-child {
-        display: none;
-    }
-
     @media(max-width: 768px) {
         .tampil-bayar {
             font-size: 3em;
@@ -66,7 +62,8 @@ Purchase
                             <div class="input-group">
                                 <input type="hidden" name="id_pembelian" id="id_pembelian" value="{{$purchaseId }}">
                                 <input type="hidden" name="id_produk" id="id_produk">
-                                <input type="text" class="form-control" name="kode_produk" id="kode_produk">
+                                <input type="hidden" name="supplier_id" id="supplier_id" value="{{ $supplier->supplier_id }}">
+                                <input type="text" class="form-control" name="kode_produk" id="kode_produk" placeholder="Search by code | Empty search and select from list">
                                 <span class="input-group-btn">
                                     <button onclick="tampilProduk()" class="btn btn-info btn-flat" type="button"><i class="fa fa-arrow-right"></i></button>
                                 </span>
@@ -99,6 +96,7 @@ Purchase
                             <input type="hidden" name="total" id="total">
                             <input type="hidden" name="total_item" id="total_item">
                             <input type="hidden" name="bayar" id="bayar">
+                            <input type="hidden" name="supplier_id" id="supplier_id" value="{{ $supplier->supplier_id }}">
 
                             <div class="form-group row">
                                 <label for="totalrp" class="col-lg-2 control-label">Total</label>
@@ -138,71 +136,70 @@ Purchase
     let table, table2;
 
     $(function () {
-        $('body').addClass('sidebar-collapse');
 
         table = $('.table-pembelian').DataTable({
-    responsive: true,
-    processing: true,
-    serverSide: true,
-    autoWidth: false,
-    paging: false,
-    ordering: false,
-    searching: false,
-    info: false,
+            responsive: true,
+            processing: true,
+            serverSide: true,
+            autoWidth: false,
+            paging: false,
+            ordering: false,
+            searching: false,
+            info: false,
 
-    ajax: {
-        url: '{{ route('pembelian_detail.data', $purchaseId) }}',
-        type: 'GET',
-        dataSrc: function (json) {
-            // ✅ set totals from server response
-            $('#total').val(json.total ?? 0);
-            $('#total_item').val(json.total_quantity ?? 0);
+            ajax: {
+                url: '{{ route('pembelian_detail.data', $purchaseId) }}',
+                type: 'GET',
+                dataSrc: function (json) {
+                    // ✅ set totals from server response
+                    $('#total').val(json.total ?? 0);
+                    $('#total_item').val(json.total_quantity ?? 0);
 
-            return json.data;
-        }
-    },
+                    return json.data;
+                }
+            },
 
-    columns: [
-        {
-            data: 'DT_RowIndex',
-            searchable: false,
-            orderable: false,
-            width: '5%'
-        },
-        {
-            data: 'product_code',
-            orderable: false
-        },
-        {
-            data: 'product_name',
-            orderable: false
-        },
-        {
-            data: 'purchase_price',
-            orderable: false
-        },
-        {
-            data: 'quantity',
-            orderable: false,
-            width: '15%'
-        },
-        {
-            data: 'subtotal',
-            orderable: false
-        },
-        {
-            data: 'action',
-            searchable: false,
-            orderable: false,
-            width: '15%'
-        },
-    ],
+            columns: [
+                {
+                    data: 'DT_RowIndex',
+                    searchable: false,
+                    orderable: false,
+                    width: '5%'
+                },
+                {
+                    data: 'product_code',
+                    orderable: false
+                },
+                {
+                    data: 'product_name',
+                    orderable: false
+                },
+                {
+                    data: 'purchase_price',
+                    orderable: false
+                },
+                {
+                    data: 'quantity',
+                    orderable: false,
+                    width: '15%'
+                },
+                {
+                    data: 'subtotal',
+                    orderable: false
+                },
+                {
+                    data: 'action',
+                    searchable: false,
+                    orderable: false,
+                    width: '15%'
+                },
+            ],
 
-    drawCallback: function () {
-        // ✅ totals already set → just calculate payment
-        loadForm($('#diskon').val());
-    }
-});
+            drawCallback: function () {
+                // ✅ totals already set → just calculate payment
+                loadForm($('#diskon').val());
+            }
+        });
 
         table2 = $('.table-produk').DataTable();
 
@@ -261,6 +258,7 @@ Purchase
     function pilihProduk(id, kode) {
         $('#id_produk').val(id);
         $('#kode_produk').val(kode);
+        $('#supplier_id').val($('#supplier_id').val());
         hideProduk();
         tambahProduk();
     }
@@ -292,43 +290,28 @@ Purchase
                 });
         }
     }
+    
 
-    // function loadForm(diskon = 0) {
-    //     $('#total').val($('.total').text());
-    //     $('#total_item').val($('.total_item').text());
-
-    //     $.get(`{{ url('/pembelian_detail/loadform') }}/${diskon}/${$('.total').text()}`)
-    //         .done(response => {
-    //             $('#totalrp').val('$ '+ response.totalrp);
-    //             $('#bayarrp').val('$ '+ response.bayarrp);
-    //             $('#bayar').val(response.bayar);
-    //             $('.tampil-bayar').text('$ '+ response.bayarrp);
-    //             $('.tampil-terbilang').text(response.terbilang);
-    //         })
-    //         .fail(errors => {
-    //             alert('Unable to display data');
-    //             return;
-    //         })
-    // }
     function loadForm(diskon = 0) {
-    let total = $('#total').val() || 0;
-    let totalItem = $('#total_item').val() || 0;
+        let purchaseId = $('#id_pembelian').val();
 
-    $('#total').val(total);
-    $('#total_item').val(totalItem);
+        $.get(`{{ url('/pembelian_detail/loadform') }}/${diskon}/${purchaseId}`)
+            .done(response => {
 
-    $.get(`{{ url('/pembelian_detail/loadform') }}/${diskon}/${total}`)
-        .done(response => {
-            $('#totalrp').val('$ ' + response.totalrp);
-            $('#bayarrp').val('$ ' + response.bayarrp);
-            $('#bayar').val(response.bayar);
-            $('.tampil-bayar').text('$ ' + response.bayarrp);
-            $('.tampil-terbilang').text(response.terbilang);
-        })
-        .fail(() => {
-            alert('Unable to display data');
-        });
-}
+                $('#total').val(response.total);
+                $('#total_item').val(response.total_item);
+
+                $('#totalrp').val('RS ' + response.totalrp);
+                $('#bayarrp').val('RS ' + response.bayarrp);
+                $('#bayar').val(response.bayar);
+
+                $('.tampil-bayar').text('RS ' + response.bayarrp);
+                $('.tampil-terbilang').text(response.terbilang);
+            })
+            .fail(() => {
+                alert('Unable to display data');
+            });
+    }
 
 </script>
 @endpush

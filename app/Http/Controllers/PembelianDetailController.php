@@ -48,7 +48,7 @@ class PembelianDetailController extends Controller
             })
 
             ->addColumn('purchase_price', function ($item) {
-                return '$ ' . format_uang($item->purchase_price);
+                return 'RS ' . $item->purchase_price;
             })
 
             ->addColumn('quantity', function ($item) {
@@ -63,7 +63,7 @@ class PembelianDetailController extends Controller
                 $total += $subtotal;
                 $totalQuantity += $item->quantity;
 
-                return '$ ' . format_uang($subtotal);
+                return 'RS ' . $subtotal;
             })
 
             ->addColumn('action', function ($item) {
@@ -88,23 +88,43 @@ class PembelianDetailController extends Controller
 
             ->make(true);
     }
-
-
     public function store(Request $request)
     {
-        $product = Produk::find($request->product_id);
+        // Find the product first
+        $product = Produk::find($request->id_produk);
 
-        if (! $product) {
-            return response()->json('Data failed to save', 400);
+        if (!$product) {
+            return response()->json('Product not found', 400);
         }
 
+        // Check if parent purchase exists, otherwise create a base record
+        $purchase = Pembelian::firstOrCreate(
+            ['purchase_id' => $request->id_pembelian],
+            [
+                'supplier_id'  => $request->supplier_id ?: null, // optional supplier
+                'total_items'  => 0,
+                'total_price'  => 0,
+                'discount'     => 0,
+                'payment'      => 0,
+                'branch_id'    => 1,
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]
+        );
+
+        // Create child detail record
         $detail = PembelianDetail::create([
-            'purchase_id'    => $request->purchase_id,
+            'purchase_id'    => $purchase->purchase_id,
             'product_id'     => $product->product_id,
             'purchase_price' => $product->purchase_price,
             'quantity'       => 1,
             'subtotal'       => $product->purchase_price,
         ]);
+
+        // Optional: update parent totals if you want to sum after each detail insertion
+        $purchase->total_items  = $purchase->total_items + $detail->quantity;
+        $purchase->total_price  = $purchase->total_price + $detail->subtotal;
+        $purchase->save();
 
         return response()->json('Data saved successfully', 200);
     }
@@ -112,8 +132,8 @@ class PembelianDetailController extends Controller
     public function update(Request $request, $id)
     {
         $detail = PembelianDetail::findOrFail($id);
-        $detail->quantity = $request->quantity;
-        $detail->subtotal = $detail->purchase_price * $request->quantity;
+        $detail->quantity = $request->jumlah;
+        $detail->subtotal = $detail->purchase_price * $request->jumlah;
         $detail->save();
     }
 
@@ -125,15 +145,27 @@ class PembelianDetailController extends Controller
         return response(null, 204);
     }
 
-    public function loadForm($discount, $total)
+    public function loadForm($discount, $purchaseId)
     {
+        $purchaseDetails = PembelianDetail::with('product')
+            ->where('purchase_id', $purchaseId)
+            ->get();
+
+        $total = $purchaseDetails->sum(function ($item) {
+            return $item->purchase_price * $item->quantity;
+        });
+
+        $totalItem = $purchaseDetails->sum('quantity');
+
         $payable = $total - ($discount / 100 * $total);
 
         return response()->json([
-            'totalrp'   => format_uang($total),
-            'bayar'     => $payable,
-            'bayarrp'   => format_uang($payable),
-            'terbilang' => ucwords(terbilang($payable) . ' Dollar')
+            'total'        => $total,
+            'total_item'   => $totalItem,
+            'totalrp'      => $total,
+            'bayar'        => $payable,
+            'bayarrp'      => $payable,
+            'terbilang'    => $payable  == 0 ? '' :ucwords(terbilang($payable) . ' Rupees')
         ]);
     }
 
