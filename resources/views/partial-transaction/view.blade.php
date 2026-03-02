@@ -59,7 +59,7 @@
                 </div>
             </div>
             <div class="header-right">
-                <div class="company-name">ALHASEED TRADERS</div>
+                <div class="company-name">ALHASEEB TRADERS</div>
                 <div class="company-address">Shop no 5, plaza 153-O, Adjacent Layers Bakery, Bharia Town Phase 4, Islamabad</div>
                 <div class="contact-info">
                     Phone no.: +923093324637<br>
@@ -163,7 +163,7 @@
 
         <!-- Signatory -->
         <div class="signatory-section">
-            For : ALHASEED TRADERS<br>
+            For : ALHASEEB TRADERS<br>
             Authorized Signatory
         </div>
     </div>

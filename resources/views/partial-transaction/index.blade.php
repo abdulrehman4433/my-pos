@@ -1,12 +1,12 @@
 @extends('layouts.master')
 
 @section('title')
-    Partial Received Transactions
+    Clear Invoice Remaing Amount
 @endsection
 
 @section('breadcrumb')
     @parent
-    <li class="active">Partial Received Transactions</li>
+    <li class="active">Clear Invoice</li>
 @endsection
 
 @section('content')
@@ -15,7 +15,7 @@
         <div class="box">
 
             <div class="box-header with-border">
-                <h3 class="box-title">Partial Received Invoice List</h3>
+                <h3 class="box-title">Partial OR Unpaid Invoice List</h3>
             </div>
 
             <div class="box-body table-responsive">
@@ -26,7 +26,7 @@
                             <th>Invoice Ref</th>
                             <th>Invoice Code</th>
                             <th>Sub Total</th>
-                            <th>Discount</th>
+                            <th>Discount %</th>
                             <th>Grand Total</th>
                             <th>Received</th>
                             <th>Remaining</th>
@@ -43,7 +43,7 @@
                                 <td>{{ $row['invoice_reference'] }}</td>
                                 <td>{{ $row['invoice_code'] }}</td>
                                 <td>{{ $row['sub_total'] }}</td>
-                                <td>{{ $row['discount_amount'] }}</td>
+                                <td>{{ $row['discount_amount'] }} %</td>
                                 <td>{{ $row['grand_total'] }}</td>
                                 <td class="text-success">
                                     {{ $row['received_amount'] }}

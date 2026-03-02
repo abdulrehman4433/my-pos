@@ -10,10 +10,11 @@
                 <table class="table table-striped table-bordered table-detail table-hover">
                     <thead>
                         <th width="5%">#</th>
-                        <th>Name</th>
+                        <th>Item Name</th>
                         <th>Quantity</th>
                         <th>Subtotal</th>
-                        <th>Total</th>
+                        <th>Discount</th>
+                        <th>Grand Total</th>
                     </thead>
                 </table>
             </div>

@@ -71,7 +71,7 @@
                     <li><a href="{{ route('penjualan.index') }}"><i class="fa fa-dollar"></i> Sales List</a></li>
                     <li><a href="{{ route('invoice.index') }}"><i class="fa fa-file-pdf-o"></i> Invoice</a></li>
                     <li><a href="{{ route('transaction-return.index') }}"><i class="fa fa-cart-arrow-down"></i> Return Transaction</a></li>
-                    <li><a href="{{ route('partial-transaction-return.data') }}"><i class="fa fa-cart-plus"></i> Partial Transaction</a></li>
+                    <li><a href="{{ route('partial-transaction-return.data') }}"><i class="fa fa-cart-plus"></i> Clear Invoice</a></li>
                 </ul>
             </li>
 

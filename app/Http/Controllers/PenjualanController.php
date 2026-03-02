@@ -20,42 +20,77 @@ class PenjualanController extends Controller
 
     public function data(Request $request)
     {
-        $invoices = Invoice::with('creator')
+        $invoices = Invoice::with(['creator', 'items.product'])
             ->where('payment_status', 'paid')
+            ->whereNotIn('return_status', ['full'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return datatables()
             ->of($invoices)
             ->addIndexColumn()
+
             ->addColumn('invoice_date', function ($invoice) {
                 return tanggal_indonesia($invoice->created_at, false);
             })
+
             ->addColumn('customer_code', function ($invoice) {
                 return '<span class="label label-success">'. $invoice->invoice_code .'</span>';
             })
+
+            // ✅ FIXED: use loaded collection instead of query
             ->addColumn('quantity', function ($invoice) {
-                $itemCount = $invoice->items()->count();
-                return $itemCount;
+                return $invoice->items->sum('quantity');
             })
+
             ->addColumn('total_amount', function ($invoice) {
                 return $invoice->sub_total;
             })
+
             ->addColumn('discount_amount', function ($invoice) {
-                return $invoice->discount_amount;
+                return $invoice->discount_amount.' %';
             })
+
             ->addColumn('final_amount', function ($invoice) {
                 return $invoice->grand_total;
             })
+
+            // ✅ NEW PROFIT COLUMN
+            ->addColumn('profit', function ($invoice) {
+
+                $totalProfit = 0;
+
+                foreach ($invoice->items as $item) {
+
+                    if (!is_null($item->item_id) && $item->product) {
+
+                        $purchasePrice = $item->product->purchase_price;
+                        $sellingPrice  = $item->product->selling_price;
+
+                        $totalProfit += ($sellingPrice - $purchasePrice) * $item->quantity;
+                    }
+                }
+
+                // subtract invoice discount
+                if ($invoice->discount_amount > 0) {
+                    $discountValue = ($totalProfit * $invoice->discount_amount) / 100;
+                    $totalProfit -= $discountValue;
+                }
+
+                return $totalProfit;
+            })
+
             ->addColumn('cashier_name', function ($invoice) {
                 return $invoice->creator->name ?? '-';
             })
+
             ->addColumn('aksi', function ($invoice) {
                 return '
                     <button onclick="showDetail(`'. route('penjualan.show', $invoice->id) .'`)" class="btn btn-primary btn-xs"><i class="fa fa-eye"></i></button>
                     <button onclick="deleteData(`'. route('penjualan.destroy', $invoice->id) .'`)" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></button>
                 ';
             })
+
             ->rawColumns(['aksi', 'customer_code'])
             ->make(true);
     }
@@ -101,83 +136,86 @@ class PenjualanController extends Controller
     }
 
     public function show($id)
-    {
-        $invoice = Invoice::findOrFail($id);
-        $detail = $invoice->items;
+{
+    $invoice = Invoice::with('items')->findOrFail($id);
+    $detail  = $invoice->items;
 
-        return datatables()
-            ->of($detail)
-            ->addIndexColumn()
-            ->addColumn('kode_produk', function ($item) {
-                return '<span class="label label-success">'. $item->product_code .'</span>';
-            })
-            ->addColumn('nama_produk', function ($item) {
-                return $item->product_name;
-            })
-            ->addColumn('harga_jual', function ($item) {
-                return '$ '. format_uang($item->unit_price);
-            })
-            ->addColumn('jumlah', function ($item) {
-                return format_uang($item->quantity);
-            })
-            ->addColumn('subtotal', function ($item) {
-                return $item->per_item_price;
-            })
-            ->addColumn('total_price', function ($item) {
-                return $item->total_price;
-            })
-            ->rawColumns(['kode_produk'])
-            ->make(true);
-    }
+    return datatables()
+        ->of($detail)
+        ->addIndexColumn()
+
+        ->addColumn('kode_produk', function ($item) {
+            return '<span class="label label-success">'. $item->product_code .'</span>';
+        })
+
+        ->addColumn('nama_produk', function ($item) {
+            return $item->product_name;
+        })
+
+        ->addColumn('jumlah', function ($item) {
+            return $item->quantity;
+        })
+
+        // ✅ Invoice Level Columns (Plain Values)
+        ->addColumn('sub_total', function () use ($invoice) {
+            return (float) $invoice->sub_total;
+        })
+
+        ->addColumn('discount', function () use ($invoice) {
+            return (float) $invoice->discount_amount.' %'; // percentage
+        })
+
+        ->addColumn('grand_total', function () use ($invoice) {
+            return (float) $invoice->grand_total;
+        })
+
+        ->rawColumns(['kode_produk'])
+        ->make(true);
+}
 
     public function destroy($id)
-{
-    DB::beginTransaction();
+    {
+        DB::beginTransaction();
 
-    try {
-        $invoice = Invoice::with('items')->findOrFail($id);
+        try {
+            $invoice = Invoice::with('items')->findOrFail($id);
 
-        foreach ($invoice->items as $item) {
+            foreach ($invoice->items as $item) {
 
-            // If item is product
-            if (!is_null($item->item_id)) {
+                // If item is product
+                if (!is_null($item->item_id)) {
 
-                // Update products table stock
-                DB::table('products')
-                    ->where('product_id', $item->item_id)
-                    ->increment('stock', $item->quantity);
-
-                // Update product_stocks table
-                DB::table('product_stocks')
-                    ->where('product_id', $item->item_id)
-                    ->increment('stock', $item->quantity);
+                    // Update product_stocks table
+                    DB::table('product_stocks')
+                        ->where('product_id', $item->item_id)
+                        ->increment('stock', $item->quantity);
+                }
             }
+
+            // Delete invoice items
+            $invoice->items()->delete();
+
+            // Delete invoice
+            $invoice->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Invoice deleted and stock restored successfully.'
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong!',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Delete invoice items
-        $invoice->items()->delete();
-
-        // Delete invoice
-        $invoice->delete();
-
-        DB::commit();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Invoice deleted and stock restored successfully.'
-        ], 200);
-
-    } catch (\Exception $e) {
-
-        DB::rollBack();
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Something went wrong!',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 
     public function selesai()
     {

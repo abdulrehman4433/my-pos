@@ -21,6 +21,7 @@
                 <input type="date" id="dashboard_date_end" name="date_end" class="form-control" style="font-size:18px; height:44px; width:180px;" value="{{ request('date_end', $tanggal_akhir) }}">
             </div>
             <button type="submit" class="btn btn-primary" style="font-size:18px; height:44px; min-width:100px; margin-left:8px;">Filter</button>
+            <button type="button" id="reset-date-filter" class="btn btn-default" style="font-size:18px; height:44px; min-width:100px; margin-left:8px;">Reset to Current Month</button>
         </form>
     </div>
 </div>
@@ -31,7 +32,7 @@
         <!-- small box -->
         <div class="small-box bg-green" onclick="addForm('{{ route('invoice.store') }}')">
             <div class="inner">
-                <h3>{{ $penjualan ?? 0 }}</h3>
+                <h3 id="total-invoices">{{ $penjualan ?? 0 }}</h3>
                 <p class="p-20">Create Invoice</p>
             </div>
             <div class="icon">
@@ -44,7 +45,7 @@
         <a href="{{ route('kategori.index') }}">
         <div class="small-box bg-primary">
             <div class="inner">
-                <h3>{{ $kategori ?? 0 }}</h3>
+                <h3 id="total-categories">{{ $kategori ?? 0 }}</h3>
                 <p class="p-20">Total Categories</p>
             </div>
             <div class="icon">
@@ -58,7 +59,7 @@
         <a href="{{ route('produk.index') }}">
         <div class="small-box bg-purple">
             <div class="inner">
-                <h3>{{ $produk ?? 0 }}</h3>
+                <h3 id="total-products">{{ $produk ?? 0 }}</h3>
                 <p class="p-20">Total Product</p>
             </div>
             <div class="icon">
@@ -72,7 +73,7 @@
         <a href="{{ route('member.index') }}">
         <div class="small-box bg-yellow">
             <div class="inner">
-                <h3>{{ $member ?? 0 }}</h3>
+                <h3 id="total-members">{{ $member ?? 0 }}</h3>
                 <p class="p-20">Total Worker</p>
             </div>
             <div class="icon">
@@ -89,7 +90,7 @@
         <a href="{{ route('supplier.index') }}">
         <div class="small-box bg-olive">
             <div class="inner">
-                <h3>{{ $supplier ?? 0 }}</h3>
+                <h3 id="total-suppliers">{{ $supplier ?? 0 }}</h3>
                 <p class="p-20">Total Supplier</p>
             </div>
             <div class="icon">
@@ -103,7 +104,7 @@
         <a href="{{ route('penjualan.index') }}">
         <div class="small-box bg-purple">
             <div class="inner">
-                <h3>{{ $penjualan ?? 0 }}</h3>
+                <h3 id="total-sales">{{ $sales_amount ?? 0 }}</h3>
                 <p class="p-20">Sales</p>
             </div>
             <div class="icon">
@@ -118,7 +119,7 @@
         <a href="{{ route('pengeluaran.index') }}">
         <div class="small-box bg-red">
             <div class="inner">
-                <h3>{{ $pengeluaran ?? 0 }}</h3>
+                <h3 id="total-expenses">{{ $pengeluaran ?? 0 }}</h3>
                 <p class="p-20">Total Expenses</p>
             </div>
             <div class="icon">
@@ -133,7 +134,7 @@
         <a href="{{ route('pembelian.index') }}">
         <div class="small-box bg-green">
             <div class="inner">
-                <h3>{{ $pembelian ?? 0 }}</h3>
+                <h3 id="total-purchases">{{ $pembelian ?? 0 }}</h3>
                 <p class="p-20">Total Purchase</p>
             </div>
             <div class="icon">
@@ -150,18 +151,7 @@
         <a href="#">
         <div class="small-box bg-primary">
             <div class="inner">
-                @php
-                    $totalCashPaid = 0;
-                    if (isset($total_invoice) && $total_invoice->isNotEmpty()) {
-                        $totalCashPaid = $total_invoice
-                        ->where('payment_received', 'cash')
-                        ->where('payment_status', 'paid')
-                        ->sum(function ($invoice) {
-                            return (float) ($invoice->grand_total ?? 0);
-                        });
-                    }
-                @endphp
-                <h3>{{ number_format($totalCashPaid, 0) }}</h3>
+                <h3 id="total-cash-paid">{{ $totalCashPaid ?? 0 }}</h3>
                 <p class="p-20">Total Cash Amount Received</p>
             </div>
             <div class="icon">
@@ -173,20 +163,11 @@
 
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
-        <a href="{{ route('penjualan.index') }}">
+        <a href="#">
         <div class="small-box bg-olive">
             <div class="inner">
-                @php
-                    $totalAcountPaid = 0;
-                    if (isset($total_invoice) && $total_invoice->isNotEmpty()) {
-                        $totalAcountPaid = $total_invoice
-                        ->whereNotIn('payment_received', ['cash', 'other'])
-                        ->where('payment_status', 'paid')
-                        ->sum('grand_total');
-                    }
-                @endphp
-                <h3>{{ number_format($totalAcountPaid, 0) }}</h3>
-                <p class="p-20">Total Account Payment</p>
+                <h3 id="total-account-paid">{{ $totalAccountPaid ?? 0 }}</h3>
+                <p class="p-20">Amount Received In Bank Account</p>
             </div>
             <div class="icon">
                 <i class="fa fa-dollar"></i>
@@ -200,17 +181,7 @@
         <a href="{{ route('partial-transaction-return.data') }}">
         <div class="small-box bg-yellow">
             <div class="inner">
-                @php
-                    $pendingCashPaid = 0;
-                    if (isset($total_invoice) && $total_invoice->isNotEmpty()) {
-                        $pendingCashPaid = $total_invoice
-                        ->where('payment_status', 'partial')
-                        ->sum(function ($invoice) {
-                            return (float) ($invoice->remaining_amount ?? 0);
-                        });
-                    }
-                @endphp
-                <h3>{{ number_format($pendingCashPaid, 0) }}</h3>
+                <h3 id="total-pending">{{ $totalPending ?? 0 }}</h3>
                 <p class="p-20">Total Pending Payment</p>
             </div>
             <div class="icon">
@@ -225,7 +196,7 @@
         <a href="#">
         <div class="small-box bg-purple">
             <div class="inner">
-                <h3>{{ number_format($totalProfit ?? 0, 0) }}</h3>
+                <h3 id="total-profit">{{ $totalProfit ?? 0 }}</h3>
                 <p class="p-20">Total Profit</p>
             </div>
             <div class="icon">
@@ -241,7 +212,7 @@
     <div class="col-lg-6">
         <div class="box">
             <div class="box-header with-border">
-                <h3 class="box-title">Income Chart {{ tanggal_indonesia($tanggal_awal ?? now(), false) }} - {{ tanggal_indonesia($tanggal_akhir ?? now(), false) }}</h3>
+                <h3 class="box-title" id="chart-title">Income Chart {{ isset($tanggal_awal) ? tanggal_indonesia($tanggal_awal, false) : '' }} - {{ isset($tanggal_akhir) ? tanggal_indonesia($tanggal_akhir, false) : '' }}</h3>
             </div>
             <div class="box-body">
                 <div class="row">
@@ -256,14 +227,14 @@
     </div>
     
     <div class="col-lg-6">
-        <div class="box box-primary" style="min-height: 350px !important; overflow-y: auto;">
+        <div class="box box-primary" style="height: 345px; min-height: 345px !important; overflow-y: auto;">
             <div class="box-header with-border">
                 <h3 class="box-title">
                     <i class="fa fa-line-chart"></i> Top Selling Products
                 </h3>
             </div>
             <div class="box-body">
-                <ul class="products-list product-list-in-box">
+                <ul class="products-list product-list-in-box" id="top-selling-products-list">
                     @forelse ($top_selling_products ?? [] as $index => $product)
                         <li class="item">
                             <div class="product-info">
@@ -298,7 +269,7 @@
 <!-- Main row -->
 <div class="row">
     <div class="col-lg-6"> 
-        <div class="box box-primary" style="min-height: 350px !important; overflow-y: auto;">
+        <div class="box box-primary" style="height: 300px; min-height: 300px !important; overflow-y: auto;">
             <div class="box-header with-border">
                 <h3 class="box-title">Products going out of stock soon</h3>
             </div>
@@ -311,7 +282,7 @@
                             <th>Minimum Stock</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="low-stock-products-table">
                         @forelse ($lowStockProducts ?? [] as $product)
                         <tr>
                             <td>{{ $product->product->product_name ?? $product->product->product_name ?? 'N/A' }}</td>
@@ -398,12 +369,17 @@
 
 @push('scripts')
 <!-- ChartJS -->
-
-<script src="{{ asset('AdminLTE-2/bower_components/chart.js/Chart.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
 <script>
 // Global variables
 let salesChart = null;
 let productStockMap = {};
+
+// Local Storage Keys
+const STORAGE_KEYS = {
+    DATE_START: 'dashboard_date_start',
+    DATE_END: 'dashboard_date_end'
+};
 
 // Error handler for debugging
 window.onerror = function(msg, url, line, col, error) {
@@ -439,6 +415,152 @@ function formatDateDMY(dateStr) {
     return dateStr;
 }
 
+// Get current month dates in YYYY-MM-DD format
+function getCurrentMonthDates() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const firstDay = `${year}-${month}-01`;
+    
+    // Get last day of month
+    const lastDay = new Date(year, now.getMonth() + 1, 0);
+    const lastDayFormatted = `${year}-${month}-${String(lastDay.getDate()).padStart(2, '0')}`;
+    
+    return {
+        start: firstDay,
+        end: lastDayFormatted
+    };
+}
+
+// Load saved dates from local storage
+function loadSavedDates() {
+    const savedStart = localStorage.getItem(STORAGE_KEYS.DATE_START);
+    const savedEnd = localStorage.getItem(STORAGE_KEYS.DATE_END);
+    
+    if (savedStart && savedEnd) {
+        return { start: savedStart, end: savedEnd };
+    }
+    
+    return null;
+}
+
+// Save dates to local storage
+function saveDatesToStorage(start, end) {
+    localStorage.setItem(STORAGE_KEYS.DATE_START, start);
+    localStorage.setItem(STORAGE_KEYS.DATE_END, end);
+}
+
+// Clear dates from local storage
+function clearSavedDates() {
+    localStorage.removeItem(STORAGE_KEYS.DATE_START);
+    localStorage.removeItem(STORAGE_KEYS.DATE_END);
+}
+
+// Update date inputs with values
+function updateDateInputs(start, end) {
+    $('#dashboard_date_start').val(start);
+    $('#dashboard_date_end').val(end);
+}
+
+// Load dashboard data with specified dates
+function loadDashboardData(start, end, updateStorage = true) {
+    // console.log('Loading dashboard data for:', start, 'to', end);
+    
+    if (updateStorage) {
+        saveDatesToStorage(start, end);
+    }
+    
+    // Show loading state
+    const $btn = $('#dashboard-date-range-form').find('button[type="submit"]');
+    const originalText = $btn.text();
+    $btn.text('Loading...').prop('disabled', true);
+    
+    // Get CSRF token
+    const csrfToken = $('meta[name="csrf-token"]').attr('content');
+    
+    // Make AJAX request
+    $.ajax({
+        url: '{{ route("dashboard") }}',
+        type: 'GET',
+        data: { 
+            date_start: start, 
+            date_end: end 
+        },
+        dataType: 'json',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        success: function(res) {
+            // console.log('Dashboard data loaded successfully');
+            
+            // Update chart
+            const labels = res.data_tanggal || [];
+            const data = res.data_pendapatan || [];
+            renderSalesChart(labels, data);
+            
+            // Update chart header
+            updateChartHeaderDateRange(start, end);
+            
+            // Update all statistics
+            updateAllStatistics(res);
+            
+            // console.log('Dashboard updated successfully');
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading dashboard data:', error);
+            
+            // Show error on chart
+            const canvas = document.getElementById('salesChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                destroyChart();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#f00';
+                ctx.textAlign = 'center';
+                ctx.fillText('Error loading data', canvas.width/2, canvas.height/2);
+            }
+            
+            alert('Failed to load dashboard data. Please try again.');
+        },
+        complete: function() {
+            $btn.text(originalText).prop('disabled', false);
+        }
+    });
+}
+
+// Update all statistics on the page
+function updateAllStatistics(res) {
+    // Update basic counts
+    $('#total-invoices').text(formatNumber(res.penjualan || 0));
+    $('#total-categories').text(formatNumber(res.kategori || 0));
+    $('#total-products').text(formatNumber(res.produk || 0));
+    $('#total-members').text(formatNumber(res.member || 0));
+    $('#total-suppliers').text(formatNumber(res.supplier || 0));
+    $('#total-sales').text(formatNumber(res.sales_amount || 0));
+    $('#total-expenses').text(formatNumber(res.pengeluaran || 0));
+    $('#total-purchases').text(formatNumber(res.pembelian || 0));
+    
+    // Update payment statistics
+    if (res.statistics) {
+        $('#total-cash-paid').text(formatNumber(res.statistics.total_cash_paid || 0));
+        $('#total-account-paid').text(formatNumber(res.statistics.total_account_paid || 0));
+        $('#total-pending').text(formatNumber(res.statistics.total_pending || 0));
+        $('#total-profit').text(formatNumber(res.statistics.total_profit || 0));
+    }
+    
+    // Update top selling products
+    if (res.top_selling_products) {
+        updateTopSellingProducts(res.top_selling_products);
+    }
+    
+    // Update low stock products
+    if (res.low_stock_products) {
+        updateLowStockProducts(res.low_stock_products);
+    }
+}
+
 function destroyChart() {
     if (salesChart) {
         try {
@@ -453,7 +575,11 @@ function destroyChart() {
     }
 }
 
+// ============== IMPROVED CHART FUNCTIONS ==============
+
 function renderSalesChart(labels, data) {
+    // console.log('Rendering chart with:', labels, data);
+    
     const canvas = document.getElementById('salesChart');
     if (!canvas) {
         console.error('Canvas element not found');
@@ -468,9 +594,9 @@ function renderSalesChart(labels, data) {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Validate data
-    if (!labels || !data || !Array.isArray(labels) || !Array.isArray(data) || labels.length === 0 || data.length === 0) {
-        console.log('No chart data available - showing message');
+    // Handle empty data
+    if (!labels || !data || !Array.isArray(labels) || !Array.isArray(data) || labels.length === 0) {
+        // console.log('No chart data available');
         ctx.font = '16px Arial';
         ctx.fillStyle = '#999';
         ctx.textAlign = 'center';
@@ -478,7 +604,14 @@ function renderSalesChart(labels, data) {
         return;
     }
     
+    // Format labels
     const formattedLabels = labels.map(l => formatDateDMY(l));
+    
+    // Ensure data is numeric
+    const numericData = data.map(val => {
+        const num = parseFloat(val);
+        return isNaN(num) ? 0 : num;
+    });
     
     try {
         salesChart = new Chart(ctx, {
@@ -493,7 +626,7 @@ function renderSalesChart(labels, data) {
                     pointBorderColor: 'rgba(60,141,188,1)',
                     pointHoverBackgroundColor: '#fff',
                     pointHoverBorderColor: 'rgba(60,141,188,1)',
-                    data: data,
+                    data: numericData,
                     fill: true,
                     tension: 0.2
                 }]
@@ -539,13 +672,13 @@ function renderSalesChart(labels, data) {
                 }
             }
         });
-        console.log('Chart rendered successfully with', labels.length, 'data points');
+        // console.log('Chart rendered successfully');
     } catch (e) {
         console.error('Error creating chart:', e);
         ctx.font = '16px Arial';
-        ctx.fillStyle = '#999';
+        ctx.fillStyle = '#f00';
         ctx.textAlign = 'center';
-        ctx.fillText('Error loading chart data', canvas.width/2, canvas.height/2);
+        ctx.fillText('Error loading chart', canvas.width/2, canvas.height/2);
     }
 }
 
@@ -561,68 +694,168 @@ function formatCurrency(value) {
     }).format(value);
 }
 
-function updateStatistics(statistics) {
-    console.log('Updating statistics with:', statistics);
-    
-    // Add your statistics update logic here
-    // For example, if you have specific elements to update:
-    if (statistics) {
-        // Update your statistics boxes here
-        // $('.total-sales').text(statistics.total_sales || 0);
-        // $('.total-profit').text(formatCurrency(statistics.total_profit || 0));
+function formatNumber(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return '0';
     }
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(value);
 }
+
+function updateChartHeaderDateRange(start, end) {
+    if (!start || !end) return;
+    
+    const formattedStart = formatDateDMY(start);
+    const formattedEnd = formatDateDMY(end);
+    
+    $('#chart-title').text(`Income Chart ${formattedStart} - ${formattedEnd}`);
+}
+
+function updateTopSellingProducts(products) {
+    const $container = $('#top-selling-products-list');
+    if (!$container.length) return;
+    
+    $container.empty();
+    
+    if (!products || products.length === 0) {
+        $container.append(`
+            <li class="item">
+                <div class="product-info">
+                    <span class="product-title">No sales data available</span>
+                </div>
+            </li>
+        `);
+        return;
+    }
+    
+    products.forEach((product, index) => {
+        let medal = '';
+        if (index === 0) medal = '🥇';
+        else if (index === 1) medal = '🥈';
+        else if (index === 2) medal = '🥉';
+        else medal = `#${index + 1}`;
+        
+        const productName = product.item_name || product.product_name || 'N/A';
+        const quantitySold = product.total_quantity_sold || 0;
+        
+        $container.append(`
+            <li class="item">
+                <div class="product-info">
+                    <span class="product-title">
+                        ${medal} ${escapeHtml(productName)}
+                        <span class="label label-success pull-right">
+                            ${quantitySold} sold
+                        </span>
+                    </span>
+                </div>
+            </li>
+        `);
+    });
+}
+
+function updateLowStockProducts(products) {
+    const $tbody = $('#low-stock-products-table');
+    if (!$tbody.length) return;
+    
+    $tbody.empty();
+    
+    if (!products || products.length === 0) {
+        $tbody.append(`
+            <tr>
+                <td colspan="3" class="text-center">No low stock products</td>
+            </tr>
+        `);
+        return;
+    }
+    
+    products.forEach(product => {
+        const productName = product.product.product_name || product.product.name || 'N/A';
+        const stock = product.stock || 0;
+        const minStock = product.minimum_stock || 0;
+        
+        $tbody.append(`
+            <tr>
+                <td>${escapeHtml(productName)}</td>
+                <td>${stock}</td>
+                <td>${minStock}</td>
+            </tr>
+        `);
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return text;
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// ============== IMPROVED INITIALIZATION ==============
 
 // Initialize when document is ready
 $(document).ready(function() {
-    console.log('Document ready - Initializing dashboard');
+    // console.log('Document ready - Initializing dashboard');
     
-    try {
-        // Get data from Blade with fallbacks
-        const chartLabels = @json($data_tanggal ?? []);
-        const chartData = @json($data_pendapatan ?? []);
+    // Check Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded!');
+    } else {
+        // console.log('Chart.js version:', Chart.version);
+    }
+    
+    // Get chart data from Blade
+    let chartLabels = [];
+    let chartData = [];
+    
+    @if(isset($data_tanggal))
+        chartLabels = @json($data_tanggal);
+        // console.log('Chart labels from server:', chartLabels);
+    @endif
+    
+    @if(isset($data_pendapatan))
+        chartData = @json($data_pendapatan);
+        // console.log('Chart data from server:', chartData);
+    @endif
+    
+    // Check for saved dates in local storage
+    const savedDates = loadSavedDates();
+    
+    if (savedDates) {
+        // console.log('Found saved dates in local storage:', savedDates);
+        updateDateInputs(savedDates.start, savedDates.end);
+        loadDashboardData(savedDates.start, savedDates.end, false);
+    } else {
+        // console.log('No saved dates found, using server-provided dates');
         
-        console.log('Initial chart data - Labels:', chartLabels.length, 'Data:', chartData.length);
-        
-        // Ensure we have arrays
-        const safeLabels = Array.isArray(chartLabels) ? chartLabels : [];
-        const safeData = Array.isArray(chartData) ? chartData : [];
-        
-        // Small delay to ensure canvas is ready
+        // Render chart with initial data
         setTimeout(() => {
-            renderSalesChart(safeLabels, safeData);
+            renderSalesChart(chartLabels, chartData);
+            
+            // Update chart header
+            const start = $('#dashboard_date_start').val();
+            const end = $('#dashboard_date_end').val();
+            if (start && end) {
+                updateChartHeaderDateRange(start, end);
+                saveDatesToStorage(start, end);
+            }
         }, 100);
-    } catch (e) {
-        console.error('Error initializing chart:', e);
-        const canvas = document.getElementById('salesChart');
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            ctx.font = '16px Arial';
-            ctx.fillStyle = '#999';
-            ctx.textAlign = 'center';
-            ctx.fillText('Error loading chart data', canvas.width/2, canvas.height/2);
-        }
     }
 
-    // IMPROVED DATE RANGE FILTER AJAX
-    console.log('Attaching form submit handler');
-    
-    // Check if form exists
-    if ($('#dashboard-date-range-form').length === 0) {
-        console.error('Form #dashboard-date-range-form not found!');
-    } else {
-        console.log('Form found, attaching handler');
-    }
-    
+    // Date range filter form submit handler
     $('#dashboard-date-range-form').on('submit', function(e) {
         e.preventDefault();
         
         const start = $('#dashboard_date_start').val();
         const end = $('#dashboard_date_end').val();
         
-        console.log('=== FILTER SUBMITTED ===');
-        console.log('Start date:', start);
-        console.log('End date:', end);
+        // console.log('Filter submitted - Start:', start, 'End:', end);
         
         // Validate dates
         if (!start || !end) {
@@ -635,182 +868,27 @@ $(document).ready(function() {
             return;
         }
         
-        // Show loading state
-        const $btn = $(this).find('button[type="submit"]');
-        const originalText = $btn.text();
-        $btn.text('Loading...').prop('disabled', true);
-        
-        // Get CSRF token
-        const csrfToken = $('meta[name="csrf-token"]').attr('content');
-        console.log('CSRF Token present:', !!csrfToken);
-        
-        // Build URL with query parameters (fallback method)
-        const url = '{{ route("dashboard") }}';
-        console.log('Request URL:', url);
-        
-        // Make AJAX request
-        $.ajax({
-            url: url,
-            type: 'GET',
-            data: { 
-                date_start: start, 
-                date_end: end 
-            },
-            dataType: 'json',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            success: function(res) {
-                console.log('=== AJAX SUCCESS ===');
-                console.log('Full response:', res);
-                
-                // Check if we have data
-                const labels = res.data_tanggal || [];
-                const data = res.data_pendapatan || [];
-                
-                console.log('Response labels:', labels.length, labels);
-                console.log('Response data:', data.length, data);
-                
-                
-                // Update chart
-                renderSalesChart(labels, data);
-                
-                // UPDATE THE CHART HEADER DATE RANGE
-                updateChartHeaderDateRange();
-                
-                // Update ALL statistics boxes with new data
-                if (res.statistics) {
-                    console.log('Updating statistics with:', res.statistics);
-                    
-                    // Update the statistics boxes using the IDs or classes from your HTML
-                    // You need to map these to your actual HTML elements
-                    
-                    // Example: Update the total invoice count (Create Invoice box)
-                    if (res.statistics.total_invoices !== undefined) {
-                        $('.small-box.bg-green .inner h3').first().text(res.statistics.total_invoices);
-                    }
-                    
-                    // Update categories count
-                    if (res.statistics.total_categories !== undefined) {
-                        $('.small-box.bg-primary .inner h3').text(res.statistics.total_categories);
-                    }
-                    
-                    // Update products count
-                    if (res.statistics.total_products !== undefined) {
-                        $('.small-box.bg-purple .inner h3').first().text(res.statistics.total_products);
-                    }
-                    
-                    // Update members/workers count
-                    if (res.statistics.total_members !== undefined) {
-                        $('.small-box.bg-yellow .inner h3').text(res.statistics.total_members);
-                    }
-                    
-                    // Update suppliers count
-                    if (res.statistics.total_suppliers !== undefined) {
-                        $('.small-box.bg-olive .inner h3').text(res.statistics.total_suppliers);
-                    }
-                    
-                    // Update sales count
-                    if (res.statistics.total_sales !== undefined) {
-                        $('.small-box.bg-purple .inner h3').eq(1).text(res.statistics.total_sales);
-                    }
-                    
-                    // Update expenses
-                    if (res.statistics.total_expenses !== undefined) {
-                        $('.small-box.bg-red .inner h3').text(res.statistics.total_expenses);
-                    }
-                    
-                    // Update purchases
-                    if (res.statistics.total_purchases !== undefined) {
-                        $('.small-box.bg-green .inner h3').eq(1).text(res.statistics.total_purchases);
-                    }
-                    
-                    // Update Cash Amount Received
-                    if (res.statistics.total_cash_paid !== undefined) {
-                        $('.small-box.bg-primary .inner h3').eq(1).text(formatNumber(res.statistics.total_cash_paid));
-                    }
-                    
-                    // Update Account Payment
-                    if (res.statistics.total_account_paid !== undefined) {
-                        $('.small-box.bg-olive .inner h3').eq(1).text(formatNumber(res.statistics.total_account_paid));
-                    }
-                    
-                    // Update Pending Payment
-                    if (res.statistics.total_pending !== undefined) {
-                        $('.small-box.bg-yellow .inner h3').eq(1).text(formatNumber(res.statistics.total_pending));
-                    }
-                    
-                    // Update Total Profit
-                    if (res.statistics.total_profit !== undefined) {
-                        $('.small-box.bg-purple .inner h3').eq(2).text(formatNumber(res.statistics.total_profit));
-                    }
-                }
-                
-                // Update Top Selling Products
-                if (res.top_selling_products && Array.isArray(res.top_selling_products)) {
-                    updateTopSellingProducts(res.top_selling_products);
-                }
-                
-                // Update Low Stock Products
-                if (res.low_stock_products && Array.isArray(res.low_stock_products)) {
-                    updateLowStockProducts(res.low_stock_products);
-                }
-                
-                // Update total_invoice for the custom calculations (Cash, Account, Pending)
-                if (res.total_invoice) {
-                    window.totalInvoiceData = res.total_invoice; // Store globally if needed
-                    updatePaymentStats(res.total_invoice);
-                }
-                
-                console.log('Dashboard updated successfully');
-            },
-            error: function(xhr, status, error) {
-                console.error('=== AJAX ERROR ===');
-                console.error('Status:', status);
-                console.error('Error:', error);
-                console.error('Response Text:', xhr.responseText);
-                console.error('Status Code:', xhr.status);
-                
-                let errorMessage = 'Error loading data';
-                
-                // Parse error response if possible
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.message) {
-                        errorMessage = response.message;
-                    }
-                } catch (e) {
-                    // If not JSON, use status text
-                    if (xhr.status === 404) {
-                        errorMessage = 'Dashboard route not found';
-                    } else if (xhr.status === 500) {
-                        errorMessage = 'Server error - check logs';
-                    }
-                }
-                
-                // Show error on chart
-                const canvas = document.getElementById('salesChart');
-                if (canvas) {
-                    const ctx = canvas.getContext('2d');
-                    destroyChart();
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.font = '16px Arial';
-                    ctx.fillStyle = '#f00';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Error: ' + errorMessage, canvas.width/2, canvas.height/2);
-                }
-                
-                alert('Failed to load dashboard data: ' + errorMessage);
-            },
-            complete: function() {
-                console.log('=== AJAX COMPLETE ===');
-                $btn.text(originalText).prop('disabled', false);
-            }
-        });
+        // Load dashboard data with new dates
+        loadDashboardData(start, end, true);
     });
 
-    // REST OF YOUR EXISTING FUNCTIONS (keep all your other functions as they were)
+    // Reset button handler
+    $('#reset-date-filter').on('click', function() {
+        // console.log('Resetting to current month');
+        
+        // Get current month dates
+        const currentMonth = getCurrentMonthDates();
+        
+        // Clear saved dates from storage
+        clearSavedDates();
+        
+        // Update date inputs
+        updateDateInputs(currentMonth.start, currentMonth.end);
+        
+        // Load dashboard data with current month dates
+        loadDashboardData(currentMonth.start, currentMonth.end, true);
+    });
+
     // Payment status change handler
     $(document).on('change', '#payment_status', function () {
         const status = $(this).val();
@@ -855,10 +933,9 @@ $(document).ready(function() {
     });
 });
 
-// Keep ALL your existing functions below this line exactly as they were
+// Keep all your existing invoice-related functions below this line exactly as they were
 // addForm, generateInvoiceCode, referenceChanged, loadSelect2, createProductSelect, 
-// addProductRow, escapeHtml, updateSubTotal, editForm, deleteData, viewForm, 
-// viewFormDownload, invoiceResource
+// addProductRow, updateSubTotal, editForm, deleteData, viewForm, viewFormDownload, invoiceResource
 
 function addForm(url) {
     const $modal = $('#modal-form');
@@ -1069,18 +1146,6 @@ function addProductRow(product) {
     updateSubTotal();
 }
 
-function escapeHtml(text) {
-    if (!text) return text;
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
-}
-
 function updateSubTotal() {
     let total = 0;
     $('#products_table tbody tr').each(function () {
@@ -1200,133 +1265,5 @@ $(window).on('resize', function() {
         salesChart.resize();
     }
 });
-
-// Add these helper functions after your existing code
-
-function formatNumber(value) {
-    if (value === null || value === undefined || isNaN(value)) {
-        return '0';
-    }
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(value);
-}
-
-function updateTopSellingProducts(products) {
-    const $container = $('.products-list.product-list-in-box');
-    if (!$container.length) return;
-    
-    $container.empty();
-    
-    if (!products || products.length === 0) {
-        $container.append(`
-            <li class="item">
-                <div class="product-info">
-                    <span class="product-title">No sales data available</span>
-                </div>
-            </li>
-        `);
-        return;
-    }
-    
-    products.forEach((product, index) => {
-        let medal = '';
-        if (index === 0) medal = '🥇';
-        else if (index === 1) medal = '🥈';
-        else if (index === 2) medal = '🥉';
-        else medal = `#${index + 1}`;
-        
-        const productName = product.item_name || product.product_name || 'N/A';
-        const quantitySold = product.total_quantity_sold || 0;
-        
-        $container.append(`
-            <li class="item">
-                <div class="product-info">
-                    <span class="product-title">
-                        ${medal} ${escapeHtml(productName)}
-                        <span class="label label-success pull-right">
-                            ${quantitySold} sold
-                        </span>
-                    </span>
-                </div>
-            </li>
-        `);
-    });
-}
-
-function updateLowStockProducts(products) {
-    const $tbody = $('.table-bordered tbody');
-    if (!$tbody.length) return;
-    
-    $tbody.empty();
-    
-    if (!products || products.length === 0) {
-        $tbody.append(`
-            <tr>
-                <td colspan="3" class="text-center">No low stock products</td>
-            </tr>
-        `);
-        return;
-    }
-    
-    products.forEach(product => {
-        const productName = product.product_name || product.name || 'N/A';
-        const stock = product.stock || 0;
-        const minStock = product.minimum_stock || 0;
-        
-        $tbody.append(`
-            <tr>
-                <td>${escapeHtml(productName)}</td>
-                <td>${stock}</td>
-                <td>${minStock}</td>
-            </tr>
-        `);
-    });
-}
-
-function updatePaymentStats(invoices) {
-    if (!invoices || !Array.isArray(invoices)) return;
-    
-    // Calculate Cash Paid
-    const totalCashPaid = invoices
-        .filter(inv => inv.payment_received === 'cash' && inv.payment_status === 'paid')
-        .reduce((sum, inv) => sum + (parseFloat(inv.grand_total) || 0), 0);
-    
-    // Calculate Account Paid
-    const totalAccountPaid = invoices
-        .filter(inv => !['cash', 'other'].includes(inv.payment_received) && inv.payment_status === 'paid')
-        .reduce((sum, inv) => sum + (parseFloat(inv.grand_total) || 0), 0);
-    
-    // Calculate Pending Payment
-    const totalPending = invoices
-        .filter(inv => inv.payment_status === 'partial')
-        .reduce((sum, inv) => sum + (parseFloat(inv.remaining_amount) || 0), 0);
-    
-    // Update the boxes
-    $('.small-box.bg-primary .inner h3').eq(1).text(formatNumber(totalCashPaid));
-    $('.small-box.bg-olive .inner h3').eq(1).text(formatNumber(totalAccountPaid));
-    $('.small-box.bg-yellow .inner h3').eq(1).text(formatNumber(totalPending));
-}
-
-function updateChartHeaderDateRange() {
-    const startDate = $('#dashboard_date_start').val();
-    const endDate = $('#dashboard_date_end').val();
-    
-    if (!startDate || !endDate) return;
-    
-    // Format dates to display format (d/m/Y)
-    const formattedStart = formatDateDMY(startDate);
-    const formattedEnd = formatDateDMY(endDate);
-    
-    // Update the chart header
-    const $header = $('.box-header .box-title');
-    $header.each(function() {
-        const text = $(this).text();
-        if (text.includes('Income Chart')) {
-            $(this).html(`Income Chart ${formattedStart} - ${formattedEnd}`);
-        }
-    });
-}
 </script>
 @endpush

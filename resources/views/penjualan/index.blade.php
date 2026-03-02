@@ -21,8 +21,9 @@
                         <th>Invoice Code</th>
                         <th>Quantity</th>
                         <th>Subtotal</th>
-                        <th>Discount</th>
+                        <th>Discount %</th>
                         <th>Grand Total</th>
+                        <th>Profit</th>
                         <th>Cashier</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
                     </thead>
@@ -56,6 +57,7 @@
                 {data: 'total_amount'},
                 {data: 'discount_amount'},
                 {data: 'final_amount'},
+                {data: 'profit'},
                 {data: 'cashier_name'},
                 {data: 'aksi', searchable: false, sortable: false},
             ]
@@ -69,8 +71,9 @@
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
                 {data: 'item_name'},
                 {data: 'jumlah'},
-                {data: 'per_item_price'},
                 {data: 'total_price'},
+                {data: 'discount'},
+                {data: 'grand_total'},
             ]
         })
     });

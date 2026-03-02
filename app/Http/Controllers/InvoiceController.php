@@ -29,7 +29,7 @@ class InvoiceController extends Controller
 
     public function data()
     {
-        $invoices = Invoice::with('items.product')->orderBy('created_at', 'desc')->get();
+        $invoices = Invoice::whereNotIn('return_status', ['full'])->with('items.product')->orderBy('created_at', 'desc')->get();
 
         $data = [];
         $no   = 1;
@@ -44,7 +44,7 @@ class InvoiceController extends Controller
             $row['tax_amount'] = $invoice->tax_amount;
             $row['discount_amount'] = $invoice->discount_amount . '%';
             $row['grand_total'] = $invoice->grand_total;
-            $row['remaining_amount'] = $invoice->remaining_amount;
+            $row['remaining_amount'] = $invoice->grand_total - $invoice->received_amount;
             $row['payment_received'] = (string) $invoice->payment_received;
 
             // payment status label
@@ -117,244 +117,244 @@ class InvoiceController extends Controller
      */
     
     public function store(Request $request)
-{
-    $request->validate([
-        'invoice_code'       => ['required', 'string', 'max:255'],
-        'invoice_reference'  => ['required', 'string', 'max:255'],
+    {
+        $request->validate([
+            'invoice_code'       => ['required', 'string', 'max:255'],
+            'invoice_reference'  => ['required', 'string', 'max:255'],
 
-        'sub_total'          => ['required', 'numeric', 'min:0'],
-        'tax_amount'         => ['nullable', 'numeric', 'min:0'],
-        'discount_amount'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sub_total'          => ['required', 'numeric', 'min:0'],
+            'tax_amount'         => ['nullable', 'numeric', 'min:0'],
+            'discount_amount'    => ['nullable', 'numeric', 'min:0', 'max:100'],
 
-        'payment_method'     => ['required', 'string', 'max:50'],
-        'payment_status'     => ['required', 'string', Rule::in(['paid','unpaid','partial'])],
-        'received_amount'    => ['required_if:payment_status,partial', 'numeric', 'min:0'],
+            'payment_method'     => ['required', 'string', 'max:50'],
+            'payment_status'     => ['required', 'string', Rule::in(['paid','unpaid','partial'])],
+            'received_amount'    => ['required_if:payment_status,partial', 'numeric', 'min:0'],
 
-        'products'           => ['required_if:invoice_reference,product', 'array'],
-        'products.*.id'      => ['required_if:invoice_reference,product', 'integer'], // id == product_id
-        'products.*.qty'     => ['required_if:invoice_reference,product', 'integer', 'min:1'],
-        'products.*.price'   => ['nullable', 'numeric', 'min:0'],
+            'products'           => ['required_if:invoice_reference,product', 'array'],
+            'products.*.id'      => ['required_if:invoice_reference,product', 'integer'], // id == product_id
+            'products.*.qty'     => ['required_if:invoice_reference,product', 'integer', 'min:1'],
+            'products.*.price'   => ['nullable', 'numeric', 'min:0'],
 
-        'reference_id'       => ['nullable', 'integer'],
-    ]);
-
-    // totals
-    $subTotal     = (float) $request->input('sub_total', 0);
-    $taxAmount    = (float) $request->input('tax_amount', 0);
-    $discountRate = (float) $request->input('discount_amount', 0);
-
-    $discountRate  = min(max($discountRate, 0), 100);
-    $discountValue = ($subTotal * $discountRate) / 100;
-    $grandTotal    = max(0, ($subTotal - $discountValue) + $taxAmount);
-
-    $fromDashboard = $request->input('from_dashboard');
-    return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal, $fromDashboard) {
-
-        $invoiceReference = $request->input('invoice_reference');
-
-        $referenceId = $request->input('reference_id');
-        $referenceId = ($referenceId === '' || $referenceId === null) ? null : (int) $referenceId;
-
-        $resourceMapping = [
-            'product'      => 'product',
-            'project'      => 'project',
-            'maintenance'  => 'maintenance',
-            'rental'       => 'rental',
-            'other'        => 'other',
-        ];
-        $invoiceResource = $resourceMapping[$invoiceReference] ?? $invoiceReference;
-
-        $received_amount  = 0.00;
-        $remaining_amount = 0.00;
-        if ($request->input('payment_status') === 'partial') {
-            $received_amount  = (float) $request->input('received_amount', 0);
-            $remaining_amount = max(0, $grandTotal - $received_amount);
-        }
-
-        // Create invoice
-        $invoice = Invoice::create([
-            'invoice_code'        => $request->input('invoice_code'),
-            'invoice_reference'   => $invoiceReference,
-            'invoice_resource'    => $invoiceResource,
-            'invoice_resource_id' => $referenceId,
-
-            'sub_total'           => $subTotal,
-            'tax_amount'          => $taxAmount,
-            'discount_amount'     => $discountRate,
-            'grand_total'         => $grandTotal,
-
-            'payment_received'    => $request->input('payment_method'),
-            'payment_status'      => $request->input('payment_status'),
-            'received_amount'     => $received_amount,
-            'remaining_amount'    => $remaining_amount,
-
-            'created_by'          => auth()->id(),
-            'updated_by'          => auth()->id(),
+            'reference_id'       => ['nullable', 'integer'],
         ]);
 
-        // ==============================
-        // PRODUCT BLOCK (MERGE + STOCK)
-        // ==============================
-        if ($invoiceReference === 'product') {
+        // totals
+        $subTotal     = (float) $request->input('sub_total', 0);
+        $taxAmount    = (float) $request->input('tax_amount', 0);
+        $discountRate = (float) $request->input('discount_amount', 0);
 
-            $lines = collect($request->input('products', []))
-                ->map(function ($row) {
-                    return [
-                        'product_id' => (int) ($row['id'] ?? 0),   // product_id
-                        'qty'        => (int) ($row['qty'] ?? 0),
-                        'price'      => (float) ($row['price'] ?? 0),
-                    ];
-                })
-                ->filter(fn($r) => $r['product_id'] > 0 && $r['qty'] > 0)
-                ->values();
+        $discountRate  = min(max($discountRate, 0), 100);
+        $discountValue = ($subTotal * $discountRate) / 100;
+        $grandTotal    = max(0, ($subTotal - $discountValue) + $taxAmount);
 
-            if ($lines->isEmpty()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'products' => 'No valid products found in request.',
-                ]);
+        $fromDashboard = $request->input('from_dashboard');
+        return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal, $fromDashboard) {
+
+            $invoiceReference = $request->input('invoice_reference');
+
+            $referenceId = $request->input('reference_id');
+            $referenceId = ($referenceId === '' || $referenceId === null) ? null : (int) $referenceId;
+
+            $resourceMapping = [
+                'product'      => 'product',
+                'project'      => 'project',
+                'maintenance'  => 'maintenance',
+                'rental'       => 'rental',
+                'other'        => 'other',
+            ];
+            $invoiceResource = $resourceMapping[$invoiceReference] ?? $invoiceReference;
+
+            $received_amount  = 0.00;
+            $remaining_amount = 0.00;
+            if ($request->input('payment_status') === 'partial') {
+                $received_amount  = (float) $request->input('received_amount', 0);
+                $remaining_amount = max(0, $grandTotal - $received_amount);
             }
 
-            // Load products in one query
-            $productIds = $lines->pluck('product_id')->unique()->values()->all();
-            $produkMap  = Produk::whereIn('product_id', $productIds)->get()->keyBy('product_id');
+            // Create invoice
+            $invoice = Invoice::create([
+                'invoice_code'        => $request->input('invoice_code'),
+                'invoice_reference'   => $invoiceReference,
+                'invoice_resource'    => $invoiceResource,
+                'invoice_resource_id' => $referenceId,
 
-            // Validate products exist
-            foreach ($productIds as $pid) {
-                if (!$produkMap->has($pid)) {
+                'sub_total'           => $subTotal,
+                'tax_amount'          => $taxAmount,
+                'discount_amount'     => $discountRate,
+                'grand_total'         => $grandTotal,
+
+                'payment_received'    => $request->input('payment_method'),
+                'payment_status'      => $request->input('payment_status'),
+                'received_amount'     => $received_amount,
+                'remaining_amount'    => $remaining_amount,
+
+                'created_by'          => auth()->id(),
+                'updated_by'          => auth()->id(),
+            ]);
+
+            // ==============================
+            // PRODUCT BLOCK (MERGE + STOCK)
+            // ==============================
+            if ($invoiceReference === 'product') {
+
+                $lines = collect($request->input('products', []))
+                    ->map(function ($row) {
+                        return [
+                            'product_id' => (int) ($row['id'] ?? 0),   // product_id
+                            'qty'        => (int) ($row['qty'] ?? 0),
+                            'price'      => (float) ($row['price'] ?? 0),
+                        ];
+                    })
+                    ->filter(fn($r) => $r['product_id'] > 0 && $r['qty'] > 0)
+                    ->values();
+
+                if ($lines->isEmpty()) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'products' => "Product not found for product_id: {$pid}",
-                    ]);
-                }
-            }
-
-            /**
-             * ✅ Merge duplicates into ONE row per product_id
-             * Also enforce SAME price per product_id (otherwise throw).
-             */
-            $merged = [];
-            foreach ($lines as $idx => $l) {
-                $pid = $l['product_id'];
-                $produk = $produkMap[$pid];
-
-                $unitPrice = $l['price'] > 0 ? $l['price'] : (float) $produk->selling_price;
-
-                if (!isset($merged[$pid])) {
-                    $merged[$pid] = [
-                        'product'     => $produk,
-                        'product_id'  => $pid,
-                        'qty'         => 0,
-                        'unit_price'  => $unitPrice,
-                    ];
-                }
-
-                // If same product repeated but different price -> error
-                if (abs($merged[$pid]['unit_price'] - $unitPrice) > 0.00001) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        "products" => "Same product_id {$pid} has different prices. Use same price or change rule to weighted average.",
+                        'products' => 'No valid products found in request.',
                     ]);
                 }
 
-                $merged[$pid]['qty'] += (int) $l['qty'];
-            }
+                // Load products in one query
+                $productIds = $lines->pluck('product_id')->unique()->values()->all();
+                $produkMap  = Produk::whereIn('product_id', $productIds)->get()->keyBy('product_id');
 
-            /**
-             * ✅ Lock stock rows FOR UPDATE
-             */
-            $stockRows = \App\Models\ProductStock::whereIn('product_id', array_keys($merged))
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('product_id');
+                // Validate products exist
+                foreach ($productIds as $pid) {
+                    if (!$produkMap->has($pid)) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'products' => "Product not found for product_id: {$pid}",
+                        ]);
+                    }
+                }
 
-            // Validate stock record exists + sufficient
-            foreach ($merged as $pid => $m) {
-                $stock = $stockRows->get($pid);
+                /**
+                 * ✅ Merge duplicates into ONE row per product_id
+                 * Also enforce SAME price per product_id (otherwise throw).
+                 */
+                $merged = [];
+                foreach ($lines as $idx => $l) {
+                    $pid = $l['product_id'];
+                    $produk = $produkMap[$pid];
 
-                if (!$stock) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'stock' => "Stock record missing for product_id: {$pid}",
+                    $unitPrice = $l['price'] > 0 ? $l['price'] : (float) $produk->selling_price;
+
+                    if (!isset($merged[$pid])) {
+                        $merged[$pid] = [
+                            'product'     => $produk,
+                            'product_id'  => $pid,
+                            'qty'         => 0,
+                            'unit_price'  => $unitPrice,
+                        ];
+                    }
+
+                    // If same product repeated but different price -> error
+                    if (abs($merged[$pid]['unit_price'] - $unitPrice) > 0.00001) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            "products" => "Same product_id {$pid} has different prices. Use same price or change rule to weighted average.",
+                        ]);
+                    }
+
+                    $merged[$pid]['qty'] += (int) $l['qty'];
+                }
+
+                /**
+                 * ✅ Lock stock rows FOR UPDATE
+                 */
+                $stockRows = \App\Models\ProductStock::whereIn('product_id', array_keys($merged))
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('product_id');
+
+                // Validate stock record exists + sufficient
+                foreach ($merged as $pid => $m) {
+                    $stock = $stockRows->get($pid);
+
+                    if (!$stock) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'stock' => "Stock record missing for product_id: {$pid}",
+                        ]);
+                    }
+
+                    $requiredQty = (int) $m['qty'];
+                    $availableQty = (int) $stock->stock;
+
+                    if ($availableQty < $requiredQty) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'stock' => "Insufficient stock for product_id {$pid}. Available: {$availableQty}, Required: {$requiredQty}",
+                        ]);
+                    }
+                }
+
+                /**
+                 * ✅ Atomic stock decrement with proper quantity handling
+                 */
+                $userId = auth()->id();
+                foreach ($merged as $pid => $m) {
+                    $qty = (int) $m['qty'];
+
+                    $updated = \App\Models\ProductStock::where('product_id', $pid)
+                        ->where('stock', '>=', $qty)
+                        ->update([
+                            'stock'      => DB::raw("stock - {$qty}"),
+                            'updated_by' => $userId,
+                            'updated_at' => now(),
+                        ]);
+
+                    if ($updated === 0) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'stock' => "Failed to deduct stock for product_id {$pid}. Stock may have changed. Please retry.",
+                        ]);
+                    }
+                }
+
+                /**
+                 * ✅ Insert ONE invoice item per product_id with correct quantity
+                 */
+                foreach ($merged as $pid => $m) {
+                    $produk = $m['product'];
+                    $qty    = (int) $m['qty'];
+                    $price  = (float) $m['unit_price'];
+                    $totalPrice = $qty * $price;
+
+                    InvoiceItem::create([
+                        'invoice_id'     => $invoice->id,
+                        'item_id'        => $produk->product_id,
+                        'item_name'      => $produk->product_name,
+                        'per_item_price' => $price,
+                        'quantity'       => $qty,
+                        'total_price'    => $totalPrice,
                     ]);
                 }
 
-                $requiredQty = (int) $m['qty'];
-                $availableQty = (int) $stock->stock;
-
-                if ($availableQty < $requiredQty) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'stock' => "Insufficient stock for product_id {$pid}. Available: {$availableQty}, Required: {$requiredQty}",
-                    ]);
-                }
-            }
-
-            /**
-             * ✅ Atomic stock decrement with proper quantity handling
-             */
-            $userId = auth()->id();
-            foreach ($merged as $pid => $m) {
-                $qty = (int) $m['qty'];
-
-                $updated = \App\Models\ProductStock::where('product_id', $pid)
-                    ->where('stock', '>=', $qty)
-                    ->update([
-                        'stock'      => DB::raw("stock - {$qty}"),
-                        'updated_by' => $userId,
-                        'updated_at' => now(),
-                    ]);
-
-                if ($updated === 0) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'stock' => "Failed to deduct stock for product_id {$pid}. Stock may have changed. Please retry.",
-                    ]);
-                }
-            }
-
-            /**
-             * ✅ Insert ONE invoice item per product_id with correct quantity
-             */
-            foreach ($merged as $pid => $m) {
-                $produk = $m['product'];
-                $qty    = (int) $m['qty'];
-                $price  = (float) $m['unit_price'];
-                $totalPrice = $qty * $price;
+            } else {
+                // Non-product invoice item
+                $itemName     = ucfirst($invoiceReference) . " Invoice";
+                $quantity     = 1;
+                $perItemPrice = $subTotal;
 
                 InvoiceItem::create([
                     'invoice_id'     => $invoice->id,
-                    'item_id'        => $produk->product_id,
-                    'item_name'      => $produk->product_name,
-                    'per_item_price' => $price,
-                    'quantity'       => $qty,
-                    'total_price'    => $totalPrice,
+                    'item_id'       => null,
+                    'item_name'      => $itemName,
+                    'per_item_price' => $perItemPrice,
+                    'quantity'       => $quantity,
+                    'total_price'    => $subTotal,
                 ]);
             }
 
-        } else {
-            // Non-product invoice item
-            $itemName     = ucfirst($invoiceReference) . " Invoice";
-            $quantity     = 1;
-            $perItemPrice = $subTotal;
-
-            InvoiceItem::create([
-                'invoice_id'     => $invoice->id,
-                'item_id'       => null,
-                'item_name'      => $itemName,
-                'per_item_price' => $perItemPrice,
-                'quantity'       => $quantity,
-                'total_price'    => $subTotal,
+            // If created from dashboard, redirect to /invoice
+            if ($fromDashboard) {
+                return redirect('/invoice');
+            }
+            return response()->json([
+                'success'     => true,
+                'message'     => 'Invoice created successfully!',
+                'invoice_id'  => $invoice->id,
+                'grand_total' => $grandTotal,
             ]);
-        }
 
-        // If created from dashboard, redirect to /invoice
-        if ($fromDashboard) {
-            return redirect('/invoice');
-        }
-        return response()->json([
-            'success'     => true,
-            'message'     => 'Invoice created successfully!',
-            'invoice_id'  => $invoice->id,
-            'grand_total' => $grandTotal,
-        ]);
-
-    }, 3);
-}
+        }, 3);
+    }
 
     /**
      * Display the specified resource.
@@ -385,53 +385,48 @@ class InvoiceController extends Controller
      */
 
     public function destroy($id)
-{
-    DB::beginTransaction();
+    {
+        DB::beginTransaction();
 
-    try {
-        $invoice = Invoice::with('items')->findOrFail($id);
+        try {
+            $invoice = Invoice::with('items')->findOrFail($id);
 
-        foreach ($invoice->items as $item) {
+            foreach ($invoice->items as $item) {
 
-            // If item is product
-            if (!is_null($item->item_id)) {
+                // If item is product
+                if (!is_null($item->item_id)) {
 
-                // Update products table stock
-                DB::table('products')
-                    ->where('product_id', $item->item_id)
-                    ->increment('stock', $item->quantity);
-
-                // Update product_stocks table
-                DB::table('product_stocks')
-                    ->where('product_id', $item->item_id)
-                    ->increment('stock', $item->quantity);
+                    // Update product_stocks table
+                    DB::table('product_stocks')
+                        ->where('product_id', $item->item_id)
+                        ->increment('stock', $item->quantity);
+                }
             }
+
+            // Delete invoice items
+            $invoice->items()->delete();
+
+            // Delete invoice
+            $invoice->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Invoice deleted and stock restored successfully.'
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong!',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Delete invoice items
-        $invoice->items()->delete();
-
-        // Delete invoice
-        $invoice->delete();
-
-        DB::commit();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Invoice deleted and stock restored successfully.'
-        ], 200);
-
-    } catch (\Exception $e) {
-
-        DB::rollBack();
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Something went wrong!',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 
     // app/Http/Controllers/InvoiceController.php
     public function view($id)

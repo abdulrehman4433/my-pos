@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('title')
-    Invoice List
+    List of All Invoice 
 @endsection
 
 @section('breadcrumb')
@@ -29,7 +29,7 @@
                             <th>Invoice Code</th>
                             <th>Invoice Ref</th>
                             <th>Sub Total</th>
-                            <th>Discount</th>
+                            <th>Discount %</th>
                             <th>Grand Total</th>
                             <th>Paid</th>
                             <th>Remaining</th>

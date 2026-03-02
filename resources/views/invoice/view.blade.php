@@ -46,6 +46,9 @@
             body { -webkit-print-color-adjust: exact; color-adjust: exact; background-color: #fff; }
             .btn, .no-print { display: none !important; }
             @page { size: A4; margin: 10mm; }
+            header, footer, .no-print {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -59,7 +62,7 @@
                 </div>
             </div>
             <div class="header-right">
-                <div class="company-name">ALHASEED TRADERS</div>
+                <div class="company-name">ALHASEEB TRADERS</div>
                 <div class="company-address">Shop no 5, plaza 153-O, Adjacent Layers Bakery, Bharia Town Phase 4, Islamabad</div>
                 <div class="contact-info">
                     Phone no.: +923093324637<br>
@@ -105,8 +108,8 @@
                         <td>{{ $product->item_name }}</td>
                         <td>{{ $product->quantity }}</td>
                         <td>{{ $product->unit ?? 'Pcs' }}</td>
-                        <td>Rs {{ number_format($product->per_item_price, 0) }}</td>
-                        <td>Rs {{ number_format($product->per_item_price * $product->quantity, 0) }}</td>
+                        <td>Rs {{ $product->per_item_price }}</td>
+                        <td>Rs {{ $product->per_item_price * $product->quantity }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -117,7 +120,7 @@
         <table class="amounts-table">
             <tr>
                 <td>Sub Total</td>
-                <td>Rs {{ number_format($invoice->sub_total ?? ($invoice->grand_total + ($invoice->discount ?? 0)), 0) }}</td>
+                <td>Rs {{ $invoice->sub_total ?? ($invoice->grand_total + ($invoice->discount ?? 0)) }}</td>
             </tr>
             @if(isset($invoice->discount_amount) && $invoice->discount_amount > 0)
             <tr>
@@ -127,7 +130,7 @@
             @endif
             <tr>
                 <td>Total</td>
-                <td>Rs {{ number_format($invoice->grand_total, 0) }}</td>
+                <td>Rs {{ $invoice->grand_total }}</td>
             </tr>
             @if($invoice->payment_status === 'partial')
             <tr>
@@ -141,7 +144,7 @@
             @endif
             <tr>
                 <td>Total Amount</td>
-                <td>Rs {{ number_format($invoice->current_balance ?? (($invoice->balance ?? $invoice->grand_total) + ($invoice->previous_balance ?? 0)), 0) }}</td>
+                <td>Rs {{ $invoice->current_balance ?? (($invoice->balance ?? $invoice->grand_total) + ($invoice->previous_balance ?? 0)) }}</td>
             </tr>
         </table>
 
@@ -159,7 +162,7 @@
 
         <!-- Signatory -->
         <div class="signatory-section">
-            For : ALHASEED TRADERS<br>
+            For : ALHASEEB TRADERS<br>
             Authorized Signatory
         </div>
     </div>

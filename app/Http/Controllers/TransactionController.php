@@ -128,7 +128,7 @@ class TransactionController extends Controller
     public function partialTransactionData()
     {
         $invoices = Invoice::query()
-            ->where('payment_status', 'partial')
+            ->whereIn('payment_status', ['partial', 'unpaid'])
             ->where('return_status', '!=', 'full')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -166,7 +166,7 @@ class TransactionController extends Controller
                 'grand_total'       => number_format($invoice->grand_total, 2),
                 'returned_amount'   => number_format($invoice->returned_amount, 2),
                 'received_amount'   => number_format($invoice->received_amount, 2),
-                'remaining_amount'  => number_format($invoice->remaining_amount, 2),
+                'remaining_amount'  => number_format($invoice->grand_total - $invoice->received_amount, 2),
                 'payment_status'    => $paymentStatus,
                 'return_status'     => $returnStatus,
                 'created_at'        => $invoice->created_at
@@ -195,7 +195,7 @@ class TransactionController extends Controller
             'grand_total'       => number_format($invoice->grand_total, 2),
             'returned_amount'   => number_format($invoice->returned_amount, 2),
             'received_amount'   => number_format($invoice->received_amount, 2),
-            'remaining_amount'  => number_format($invoice->remaining_amount, 2),
+            'remaining_amount'  => number_format($invoice->grand_total - $invoice->received_amount, 2),
             'payment_status'    => $invoice->payment_status,
             'return_status'     => $invoice->return_status,
 
@@ -247,132 +247,267 @@ class TransactionController extends Controller
         ->back()
         ->with('success', 'Invoice remaining amount cleared successfully');
     }
-    
+
     public function store(Request $request)
-    {
-        $request->validate([
-            'invoice_id'        => 'required|exists:invoices,id',
-            'return_type'       => 'required|in:full,partial',
-            'items.*.return_qty'=> 'nullable|numeric|min:0',
-            'reason'            => 'nullable|string|max:500',
-            'return_amount_in'  => 'nullable|string',
-        ]);
+{
+    $request->validate([
+        'invoice_id'        => 'required|exists:invoices,id',
+        'return_type'       => 'required|in:full,partial',
+        'items.*.return_qty'=> 'nullable|numeric|min:0',
+        'reason'            => 'nullable|string|max:500',
+        'return_amount_in'  => 'nullable|string',
+    ]);
 
-        $invoice = Invoice::with('items')->findOrFail($request->invoice_id);
+    $invoice = Invoice::with('items')->findOrFail($request->invoice_id);
+    $totalReturned = 0;
 
-        $totalReturned = 0;
+    DB::transaction(function () use ($invoice, $request, &$totalReturned) {
 
-        DB::transaction(function () use ($invoice, $request, &$totalReturned) {
+        // Calculate discount ratio (grand_total / sub_total) for proper adjustment
+        $discountRatio = $invoice->sub_total > 0 ? ($invoice->grand_total / $invoice->sub_total) : 1;
 
-            // Calculate discount ratio once (applies to all items)
-            $discountRatio = $invoice->grand_total > 0
-                ? ($invoice->grand_total / $invoice->sub_total)
-                : 1; 
-            // Example: if sub_total=1000, grand_total=900 → discountRatio=0.9
+        if ($request->return_type === 'full') {
+            // FULL RETURN: Zero out all relevant columns
+            foreach ($invoice->items as $item) {
+                $returnQty = $item->quantity;
+                if ($returnQty <= 0) continue;
 
-            if ($request->return_type === 'full') {
-                foreach ($invoice->items as $item) {
-                    $returnQty = $item->quantity;
-                    if ($returnQty <= 0) continue;
+                $itemPrice    = $item->per_item_price ?? ($item->total_price / max($item->quantity, 1));
+                $rawReturn    = $returnQty * $itemPrice;
+                $returnAmount = $rawReturn * $discountRatio;
 
-                    $itemPrice    = $item->per_item_price ?? ($item->total_price / $item->quantity);
-                    $rawReturn    = $returnQty * $itemPrice;
-                    $returnAmount = $rawReturn * $discountRatio; // ✅ apply discount
+                // Update invoice item
+                $item->quantity = 0;
+                $item->total_price = 0;
+                $item->per_item_price = 0;
+                $item->returned_amount += $returnAmount;
+                $item->return_status = 'full';
+                $item->save();
 
-                    // Update invoice item
-                    $item->returned_amount += $returnAmount;
-                    $item->quantity = 0;
-                    $item->return_status = 'full';
-                    $item->total_price -= $rawReturn; // keep raw total_price consistent
-                    $item->save();
-
-                    // Update product stock
-                    if (!is_null($item->item_id)) {
-                        $stock = ProductStock::firstOrCreate(
-                            ['product_id' => $item->item_id],
-                            ['stock' => 0, 'created_by' => auth()->id()]
-                        );
-                        $stock->increment('stock', $returnQty);
-                    }
-
-                    $totalReturned += $returnAmount;
+                // Update stock
+                if (!is_null($item->item_id)) {
+                    $stock = ProductStock::firstOrCreate(
+                        ['product_id' => $item->item_id],
+                        ['stock' => 0, 'created_by' => auth()->id()]
+                    );
+                    $stock->increment('stock', $returnQty);
                 }
 
-                $invoice->returned_amount += $totalReturned;
-                $invoice->return_status = 'full';
-
-            } elseif ($request->return_type === 'partial') {
-                $itemsData = $request->input('items', []);
-
-                foreach ($invoice->items as $item) {
-                    $returnQty = isset($itemsData[$item->id]['return_qty'])
-                        ? (float)$itemsData[$item->id]['return_qty']
-                        : 0;
-
-                    if ($returnQty <= 0 || $returnQty > $item->quantity) continue;
-
-                    $itemPrice    = $item->per_item_price ?? ($item->total_price / $item->quantity);
-                    $rawReturn    = $returnQty * $itemPrice;
-                    $returnAmount = $rawReturn * $discountRatio; // ✅ apply discount
-
-                    // Update invoice item
-                    $item->returned_amount += $returnAmount;
-                    $item->quantity -= $returnQty;
-                    $item->return_status = $item->quantity > 0 ? 'partial' : 'full';
-                    $item->total_price -= $rawReturn;
-                    $item->save();
-
-                    // Update product stock
-                    if (!is_null($item->item_id)) {
-                        $stock = ProductStock::firstOrCreate(
-                            ['product_id' => $item->item_id],
-                            ['stock' => 0, 'created_by' => auth()->id()]
-                        );
-                        $stock->increment('stock', $returnQty);
-                    }
-
-                    $totalReturned += $returnAmount;
-                }
-
-                // Validate against remaining refundable balance
-                $remaining = $invoice->grand_total - $invoice->returned_amount;
-                if ($totalReturned > $remaining) {
-                    throw ValidationException::withMessages([
-                        'items' => ['Calculated return exceeds remaining invoice amount.'],
-                    ]);
-                }
-
-                $invoice->returned_amount += $totalReturned;
-                $allReturned = $invoice->items->every(fn($i) => $i->quantity == 0);
-                $invoice->return_status = $allReturned ? 'full' : 'partial';
+                $totalReturned += $returnAmount;
             }
 
-            // ✅ Subtract discounted return from grand_total
-            $invoice->grand_total -= $totalReturned;
+            // Update invoice totals
+            $invoice->sub_total = 0;
+            $invoice->tax_amount = 0;
+            $invoice->discount_amount = 0;
+            $invoice->grand_total = 0;
+            $invoice->received_amount = 0;
+            $invoice->remaining_amount = 0;
+            $invoice->returned_amount += $totalReturned;
+            $invoice->return_status = 'full';
 
-            // ✅ Sub_total should subtract raw return (before discount)
+        } elseif ($request->return_type === 'partial') {
+            // PARTIAL RETURN: Calculate exact values
+            $itemsData = $request->input('items', []);
+
+            foreach ($invoice->items as $item) {
+                $returnQty = isset($itemsData[$item->id]['return_qty']) 
+                    ? (float)$itemsData[$item->id]['return_qty'] 
+                    : 0;
+
+                if ($returnQty <= 0 || $returnQty > $item->quantity) continue;
+
+                $itemPrice    = $item->per_item_price ?? ($item->total_price / max($item->quantity, 1));
+                $rawReturn    = $returnQty * $itemPrice;
+                $returnAmount = $rawReturn * $discountRatio;
+
+                // Update invoice item
+                $item->quantity -= $returnQty;
+                $item->total_price -= $rawReturn;
+                $item->returned_amount += $returnAmount;
+                $item->return_status = $item->quantity > 0 ? 'partial' : 'full';
+                $item->save();
+
+                // Update stock
+                if (!is_null($item->item_id)) {
+                    $stock = ProductStock::firstOrCreate(
+                        ['product_id' => $item->item_id],
+                        ['stock' => 0, 'created_by' => auth()->id()]
+                    );
+                    $stock->increment('stock', $returnQty);
+                }
+
+                $totalReturned += $returnAmount;
+            }
+
+            // Check remaining invoice amount
+            $remaining = $invoice->grand_total - $invoice->returned_amount;
+            if ($totalReturned > $remaining) {
+                throw ValidationException::withMessages([
+                    'items' => ['Calculated return exceeds remaining invoice amount.'],
+                ]);
+            }
+
+            $invoice->returned_amount += $totalReturned;
+
+            // Update invoice totals proportionally
             $rawTotalReturned = $totalReturned / $discountRatio;
             $invoice->sub_total -= $rawTotalReturned;
+            $invoice->grand_total -= $totalReturned;
 
-            $invoice->save();
+            // Recalculate remaining amount
+            $invoice->remaining_amount = max($invoice->grand_total - $invoice->received_amount, 0);
 
-            // ✅ Insert into transaction_returns with discounted amount
-            TransactionReturn::create([
-                'invoice_id'       => $invoice->id,
-                'return_no'        => 'RTN-' . strtoupper(Str::random(8)),
-                'return_type'      => $request->return_type,
-                'return_amount'    => $totalReturned, // discounted amount
-                'return_amount_in' => $request->return_amount_in,
-                'reason'           => $request->reason,
-                'created_by'       => auth()->id(),
-            ]);
-        });
+            $allReturned = $invoice->items->every(fn($i) => $i->quantity == 0);
+            $invoice->return_status = $allReturned ? 'full' : 'partial';
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Return processed successfully',
-            'total_returned' => number_format($totalReturned, 2),
+        $invoice->save();
+
+        // Record return transaction
+        TransactionReturn::create([
+            'invoice_id'       => $invoice->id,
+            'return_no'        => 'RTN-' . strtoupper(Str::random(8)),
+            'return_type'      => $request->return_type,
+            'return_amount'    => $totalReturned,
+            'return_amount_in' => $request->return_amount_in,
+            'reason'           => $request->reason,
+            'created_by'       => auth()->id(),
         ]);
-    }
+    });
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Return processed successfully',
+        'total_returned' => number_format($totalReturned, 2),
+    ]);
+}
+    
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'invoice_id'        => 'required|exists:invoices,id',
+    //         'return_type'       => 'required|in:full,partial',
+    //         'items.*.return_qty'=> 'nullable|numeric|min:0',
+    //         'reason'            => 'nullable|string|max:500',
+    //         'return_amount_in'  => 'nullable|string',
+    //     ]);
+
+    //     $invoice = Invoice::with('items')->findOrFail($request->invoice_id);
+
+    //     $totalReturned = 0;
+
+    //     DB::transaction(function () use ($invoice, $request, &$totalReturned) {
+
+    //         // Calculate discount ratio once (applies to all items)
+    //         $discountRatio = $invoice->grand_total > 0
+    //             ? ($invoice->grand_total / $invoice->sub_total)
+    //             : 1; 
+    //         // Example: if sub_total=1000, grand_total=900 → discountRatio=0.9
+
+    //         if ($request->return_type === 'full') {
+    //             foreach ($invoice->items as $item) {
+    //                 $returnQty = $item->quantity;
+    //                 if ($returnQty <= 0) continue;
+
+    //                 $itemPrice    = $item->per_item_price ?? ($item->total_price / $item->quantity);
+    //                 $rawReturn    = $returnQty * $itemPrice;
+    //                 $returnAmount = $rawReturn * $discountRatio; // ✅ apply discount
+
+    //                 // Update invoice item
+    //                 $item->returned_amount += $returnAmount;
+    //                 $item->quantity = 0;
+    //                 $item->return_status = 'full';
+    //                 $item->total_price -= $rawReturn; // keep raw total_price consistent
+    //                 $item->save();
+
+    //                 // Update product stock
+    //                 if (!is_null($item->item_id)) {
+    //                     $stock = ProductStock::firstOrCreate(
+    //                         ['product_id' => $item->item_id],
+    //                         ['stock' => 0, 'created_by' => auth()->id()]
+    //                     );
+    //                     $stock->increment('stock', $returnQty);
+    //                 }
+
+    //                 $totalReturned += $returnAmount;
+    //             }
+
+    //             $invoice->returned_amount += $totalReturned;
+    //             $invoice->return_status = 'full';
+
+    //         } elseif ($request->return_type === 'partial') {
+    //             $itemsData = $request->input('items', []);
+
+    //             foreach ($invoice->items as $item) {
+    //                 $returnQty = isset($itemsData[$item->id]['return_qty'])
+    //                     ? (float)$itemsData[$item->id]['return_qty']
+    //                     : 0;
+
+    //                 if ($returnQty <= 0 || $returnQty > $item->quantity) continue;
+
+    //                 $itemPrice    = $item->per_item_price ?? ($item->total_price / $item->quantity);
+    //                 $rawReturn    = $returnQty * $itemPrice;
+    //                 $returnAmount = $rawReturn * $discountRatio; // ✅ apply discount
+
+    //                 // Update invoice item
+    //                 $item->returned_amount += $returnAmount;
+    //                 $item->quantity -= $returnQty;
+    //                 $item->return_status = $item->quantity > 0 ? 'partial' : 'full';
+    //                 $item->total_price -= $rawReturn;
+    //                 $item->save();
+
+    //                 // Update product stock
+    //                 if (!is_null($item->item_id)) {
+    //                     $stock = ProductStock::firstOrCreate(
+    //                         ['product_id' => $item->item_id],
+    //                         ['stock' => 0, 'created_by' => auth()->id()]
+    //                     );
+    //                     $stock->increment('stock', $returnQty);
+    //                 }
+
+    //                 $totalReturned += $returnAmount;
+    //             }
+
+    //             // Validate against remaining refundable balance
+    //             $remaining = $invoice->grand_total - $invoice->returned_amount;
+    //             if ($totalReturned > $remaining) {
+    //                 throw ValidationException::withMessages([
+    //                     'items' => ['Calculated return exceeds remaining invoice amount.'],
+    //                 ]);
+    //             }
+
+    //             $invoice->returned_amount += $totalReturned;
+    //             $allReturned = $invoice->items->every(fn($i) => $i->quantity == 0);
+    //             $invoice->return_status = $allReturned ? 'full' : 'partial';
+    //         }
+
+    //         // ✅ Subtract discounted return from grand_total
+    //         $invoice->grand_total -= $totalReturned;
+
+    //         // ✅ Sub_total should subtract raw return (before discount)
+    //         $rawTotalReturned = $totalReturned / $discountRatio;
+    //         $invoice->sub_total -= $rawTotalReturned;
+
+    //         $invoice->save();
+
+    //         // ✅ Insert into transaction_returns with discounted amount
+    //         TransactionReturn::create([
+    //             'invoice_id'       => $invoice->id,
+    //             'return_no'        => 'RTN-' . strtoupper(Str::random(8)),
+    //             'return_type'      => $request->return_type,
+    //             'return_amount'    => $totalReturned, // discounted amount
+    //             'return_amount_in' => $request->return_amount_in,
+    //             'reason'           => $request->reason,
+    //             'created_by'       => auth()->id(),
+    //         ]);
+    //     });
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Return processed successfully',
+    //         'total_returned' => number_format($totalReturned, 2),
+    //     ]);
+    // }
 
 }
