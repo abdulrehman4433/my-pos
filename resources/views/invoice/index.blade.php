@@ -45,6 +45,7 @@
 </div>
 
 @includeIf('invoice.form')
+@includeIf('invoice.discount-calculator')
 @endsection
 
 @push('scripts')
@@ -65,11 +66,14 @@
     .select2-container--default .select2-results__option--highlighted[aria-selected] {
         color: #fff !important;
     }
+    .input-group .btn{
+        padding: 6px 10px;
+    }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
-    let table;
+let table;
 
 $(function () {
     table = $('#invoice-table').DataTable({
@@ -491,56 +495,94 @@ function viewFormDownload(invoiceId) {
 }
 
 function invoiceResource(select) {
+
     const value = select.value;
+
     const $group = $('#resource_id_group');
     const $container = $('#resource_id_container');
 
-    // Reset
+    // reset
     $container.empty();
     $group.hide();
 
-    if (value !== 'customer') return;
+    // NEW CUSTOMER (no server call)
+    if (value === 'new_customer') {
+        
+        $group.find('label').text('Customer Details');
+        $group.show();
 
-    $group.show();
+        const html = `
+                <input type="text"
+                       class="form-control"
+                       name="new_customer_name"
+                       style="margin-bottom:10px;"
+                       placeholder="Enter customer name">
+                <input type="text"
+                       class="form-control"
+                       name="new_customer_mobile"
+                       placeholder="Enter mobile number">
+        `;
 
-    $.ajax({
-        url: "{{ route('invoice.customer') }}",
-        type: "GET",
-        dataType: "json",
-        success: function (res) {
+        $container.append(html);
 
-            // Create select element
-            const $select = $('<select>', {
-                class: 'form-control',
-                id: 'resource_id',
-                name: 'resource_id'
-            });
+        return;
+    }
 
-            $select.append('<option value="">Select Customer</option>');
+    // EXISTING CUSTOMER
+    if (value === 'customer') {
+        $group.find('label').text('Select Customer');
+        $group.show();
 
-            if (Array.isArray(res) && res.length) {
-                res.forEach(item => {
-                    $select.append(
-                        $('<option>', {
-                            value: item.id,
-                            text: item.name,
-                            'data-name': item.name,
-                            'data-discount': item.discount
-                        })
-                    );
+        $.ajax({
+            url: "{{ route('invoice.customer') }}",
+            type: "GET",
+            dataType: "json",
+
+            success: function (res) {
+
+                const $select = $('<select>', {
+                    class: 'form-control',
+                    id: 'resource_id',
+                    name: 'resource_id'
                 });
-            } else {
-                $select.append('<option value="">No customers found</option>');
+
+                $select.append('<option value="">Select Customer</option>');
+
+                if (Array.isArray(res) && res.length) {
+
+                    res.forEach(item => {
+
+                        $select.append(
+                            $('<option>', {
+                                value: item.id,
+                                text: item.name || 'Unknown',
+                                'data-name': item.name,
+                                'data-discount': item.discount || 0
+                            })
+                        );
+
+                    });
+
+                } else {
+
+                    $select.append('<option value="">No customers found</option>');
+
+                }
+
+                $container.append($select);
+
+            },
+
+            error: function () {
+
+                $container.append('<span class="text-danger">Failed to load customers</span>');
+
             }
 
-            $container.append($select);
-        },
-        error: function () {
-            $container.append(
-                '<span class="text-danger">Failed to load customers</span>'
-            );
-        }
-    });
+        });
+
+    }
+
 }
 
 $(document).on('change', '#resource_id', function () {
@@ -570,6 +612,35 @@ $(document).ready(function() {
     $(document).on('focus', '.qty-input', function() {
         $(this).trigger('input');
     });
+});
+
+$(document).ready(function(){
+
+    function calculateDiscount(){
+        let amount = parseFloat($('#calc_amount').val());
+        let discount = parseFloat($('#calc_discount').val());
+
+        if(!isNaN(amount) && amount > 0 && !isNaN(discount)){
+            let percent = (discount / amount) * 100;
+            $('#calc_percentage').val(percent.toFixed(2));
+        }
+    }
+
+    $('#calc_amount, #calc_discount').on('keyup change', function(){
+        calculateDiscount();
+    });
+
+    $('#apply_discount').click(function(){
+
+        let percentage = $('#calc_percentage').val();
+
+        if(percentage){
+            $('#discount_amount').val(percentage);
+        }
+
+        $('#discountCalculatorModal').modal('hide');
+    });
+
 });
 </script>
 

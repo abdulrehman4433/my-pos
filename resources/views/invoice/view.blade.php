@@ -77,7 +77,19 @@
         <div class="details-section">
             <div class="bill-to-section">
                 <div class="section-title">Bill To</div>
-                <div class="customer-name">{{ $invoice->customer_name ?? 'Bahria Shop' }}</div>
+                @php
+                    $customer = $invoice->customers->first();
+                @endphp
+
+                @if($customer)
+                    <div class="invoice-info">
+                        Name: {{ $customer->name }} <br>
+                        Mobile No: {{ $customer->phone ?? '__' }} <br>
+                        Address: {{ $customer->address ?? '__' }}
+                    </div>
+                @else
+                    <div class="customer-name">Customer</div>
+                @endif
             </div>
             <div class="invoice-details-section">
                 <div class="section-title">Invoice Details</div>

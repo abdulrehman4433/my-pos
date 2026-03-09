@@ -28,4 +28,9 @@ class Customer extends Model
         'is_active'       => 'boolean',
     ];
 
+    public function invoices()
+    {
+        return $this->belongsToMany(Invoice::class, 'customer_invoice', 'customer_id', 'invoice_id');
+    }
+
 }

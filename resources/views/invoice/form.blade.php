@@ -13,7 +13,7 @@
                     <h4 class="modal-title"></h4>
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-body" style="min-height: 500px; height: 500px; overflow-y: auto;">
 
                     {{-- Invoice Code --}}
 
@@ -88,7 +88,8 @@
                         <div class="col-lg-7">
                             <select name="invoice_resource" id="invoice_resource" onchange="invoiceResource(this)" class="form-control" required>
                                 <option value="">-- Select Resource --</option>
-                                <option value="customer">Customer</option>
+                                <option value="customer">Saved Customer</option>
+                                <option value="new_customer">New Customer</option>
                                 <option value="other">Other</option>
                             </select>
                         </div>
@@ -103,12 +104,27 @@
 
                     {{-- Discount Amount --}}
                     <div class="form-group row">
-                        <label class="col-lg-3 control-label">Discount(%)</label>
+                        <label class="col-lg-3 control-label">Discount (%)</label>
+
                         <div class="col-lg-7">
-                            <input type="number" step="0.01" min="0"
-                                   name="discount_amount"
-                                   id="discount_amount"
-                                   class="form-control">
+                            <div style="display:flex; align-items:stretch; gap:5px;">
+
+                                <input type="number"
+                                    step="0.01"
+                                    min="0"
+                                    name="discount_amount"
+                                    id="discount_amount"
+                                    class="form-control">
+
+                                <button type="button"
+                                        class="btn btn-secondary"
+                                        data-toggle="modal"
+                                        data-target="#discountCalculatorModal"
+                                        title="Discount Calculator">
+                                    <i class="fa fa-calculator"></i>
+                                </button>
+
+                            </div>
                         </div>
                     </div>
 

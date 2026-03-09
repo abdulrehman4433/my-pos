@@ -302,6 +302,7 @@
 </div>
 
 @includeIf('invoice.form')
+@includeIf('invoice.discount-calculator')
 @endsection
 
 @push('css')
@@ -363,6 +364,9 @@
             position: relative;
             height: 280px;
             width: 100%;
+        }
+        .input-group .btn{
+            padding: 6px 10px;
         }
     </style>
 @endpush
@@ -1212,51 +1216,94 @@ function viewFormDownload(invoiceId) {
 }
 
 function invoiceResource(select) {
+
     const value = select.value;
+
     const $group = $('#resource_id_group');
     const $container = $('#resource_id_container');
 
+    // reset
     $container.empty();
     $group.hide();
 
-    if (value !== 'customer') return;
+    // NEW CUSTOMER (no server call)
+    if (value === 'new_customer') {
+        
+        $group.find('label').text('Customer Details');
+        $group.show();
 
-    $group.show();
+        const html = `
+                <input type="text"
+                       class="form-control"
+                       name="new_customer_name"
+                       style="margin-bottom:10px;"
+                       placeholder="Enter customer name">
+                <input type="text"
+                       class="form-control"
+                       name="new_customer_mobile"
+                       placeholder="Enter mobile number">
+        `;
 
-    $.ajax({
-        url: "{{ route('invoice.customer') }}",
-        type: "GET",
-        dataType: "json",
-        success: function (res) {
-            const $select = $('<select>', {
-                class: 'form-control',
-                id: 'resource_id',
-                name: 'resource_id'
-            });
+        $container.append(html);
 
-            $select.append('<option value="">Select Customer</option>');
+        return;
+    }
 
-            if (Array.isArray(res) && res.length) {
-                res.forEach(item => {
-                    $select.append(
-                        $('<option>', {
-                            value: item.id,
-                            text: item.name || 'Unknown',
-                            'data-name': item.name,
-                            'data-discount': item.discount || 0
-                        })
-                    );
+    // EXISTING CUSTOMER
+    if (value === 'customer') {
+        $group.find('label').text('Select Customer');
+        $group.show();
+
+        $.ajax({
+            url: "{{ route('invoice.customer') }}",
+            type: "GET",
+            dataType: "json",
+
+            success: function (res) {
+
+                const $select = $('<select>', {
+                    class: 'form-control',
+                    id: 'resource_id',
+                    name: 'resource_id'
                 });
-            } else {
-                $select.append('<option value="">No customers found</option>');
+
+                $select.append('<option value="">Select Customer</option>');
+
+                if (Array.isArray(res) && res.length) {
+
+                    res.forEach(item => {
+
+                        $select.append(
+                            $('<option>', {
+                                value: item.id,
+                                text: item.name || 'Unknown',
+                                'data-name': item.name,
+                                'data-discount': item.discount || 0
+                            })
+                        );
+
+                    });
+
+                } else {
+
+                    $select.append('<option value="">No customers found</option>');
+
+                }
+
+                $container.append($select);
+
+            },
+
+            error: function () {
+
+                $container.append('<span class="text-danger">Failed to load customers</span>');
+
             }
 
-            $container.append($select);
-        },
-        error: function() {
-            $container.append('<span class="text-danger">Failed to load customers</span>');
-        }
-    });
+        });
+
+    }
+
 }
 
 // Handle window resize
@@ -1264,6 +1311,35 @@ $(window).on('resize', function() {
     if (salesChart && typeof salesChart.resize === 'function') {
         salesChart.resize();
     }
+});
+
+$(document).ready(function(){
+
+    function calculateDiscount(){
+        let amount = parseFloat($('#calc_amount').val());
+        let discount = parseFloat($('#calc_discount').val());
+
+        if(!isNaN(amount) && amount > 0 && !isNaN(discount)){
+            let percent = (discount / amount) * 100;
+            $('#calc_percentage').val(percent.toFixed(2));
+        }
+    }
+
+    $('#calc_amount, #calc_discount').on('keyup change', function(){
+        calculateDiscount();
+    });
+
+    $('#apply_discount').click(function(){
+
+        let percentage = $('#calc_percentage').val();
+
+        if(percentage){
+            $('#discount_amount').val(percentage);
+        }
+
+        $('#discountCalculatorModal').modal('hide');
+    });
+
 });
 </script>
 @endpush

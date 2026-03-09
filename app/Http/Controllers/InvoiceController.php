@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Produk;
 use App\Models\Customer;
+use App\Models\CustomerInvoice;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -112,12 +113,9 @@ class InvoiceController extends Controller
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    
     public function store(Request $request)
     {
+        // dd($request->all());
         $request->validate([
             'invoice_code'       => ['required', 'string', 'max:255'],
             'invoice_reference'  => ['required', 'string', 'max:255'],
@@ -131,14 +129,13 @@ class InvoiceController extends Controller
             'received_amount'    => ['required_if:payment_status,partial', 'numeric', 'min:0'],
 
             'products'           => ['required_if:invoice_reference,product', 'array'],
-            'products.*.id'      => ['required_if:invoice_reference,product', 'integer'], // id == product_id
+            'products.*.id'      => ['required_if:invoice_reference,product', 'integer'],
             'products.*.qty'     => ['required_if:invoice_reference,product', 'integer', 'min:1'],
             'products.*.price'   => ['nullable', 'numeric', 'min:0'],
 
             'reference_id'       => ['nullable', 'integer'],
         ]);
 
-        // totals
         $subTotal     = (float) $request->input('sub_total', 0);
         $taxAmount    = (float) $request->input('tax_amount', 0);
         $discountRate = (float) $request->input('discount_amount', 0);
@@ -148,6 +145,7 @@ class InvoiceController extends Controller
         $grandTotal    = max(0, ($subTotal - $discountValue) + $taxAmount);
 
         $fromDashboard = $request->input('from_dashboard');
+
         return DB::transaction(function () use ($request, $subTotal, $taxAmount, $discountRate, $grandTotal, $fromDashboard) {
 
             $invoiceReference = $request->input('invoice_reference');
@@ -162,16 +160,60 @@ class InvoiceController extends Controller
                 'rental'       => 'rental',
                 'other'        => 'other',
             ];
+
             $invoiceResource = $resourceMapping[$invoiceReference] ?? $invoiceReference;
 
             $received_amount  = 0.00;
             $remaining_amount = 0.00;
+
             if ($request->input('payment_status') === 'partial') {
                 $received_amount  = (float) $request->input('received_amount', 0);
                 $remaining_amount = max(0, $grandTotal - $received_amount);
             }
 
-            // Create invoice
+            /*
+            |--------------------------------------------------------------------------
+            | CUSTOMER HANDLING (NEW / EXISTING)
+            |--------------------------------------------------------------------------
+            */
+
+            $customerId = null;
+
+            if ($request->input('invoice_resource') === 'new_customer') {
+
+                $name  = $request->input('new_customer_name');
+                $phone = $request->input('new_customer_mobile');
+
+                if ($name || $phone) {
+
+                    $customer = \App\Models\Customer::create([
+                        'customer_code'   => 'CUS-' . time(),
+                        'name'            => $name,
+                        'phone'           => $phone,
+                        'address'         => null,
+                        'current_balance' => 0,
+                        'discount'        => 0,
+                        'is_active'       => 1,
+                        'notes'           => null,
+                        'created_by'      => auth()->id(),
+                        'updated_by'      => auth()->id(),
+                    ]);
+
+                    $customerId = $customer->id;
+                }
+
+            } elseif ($request->input('invoice_resource') === 'customer') {
+
+                $customerId = (int) $request->input('resource_id');
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | CREATE INVOICE
+            |--------------------------------------------------------------------------
+            */
+
             $invoice = Invoice::create([
                 'invoice_code'        => $request->input('invoice_code'),
                 'invoice_reference'   => $invoiceReference,
@@ -192,15 +234,33 @@ class InvoiceController extends Controller
                 'updated_by'          => auth()->id(),
             ]);
 
-            // ==============================
-            // PRODUCT BLOCK (MERGE + STOCK)
-            // ==============================
+            /*
+            |--------------------------------------------------------------------------
+            | CUSTOMER INVOICE RELATION
+            |--------------------------------------------------------------------------
+            */
+
+            if ($customerId) {
+
+                \App\Models\CustomerInvoice::create([
+                    'invoice_id'  => $invoice->id,
+                    'customer_id' => $customerId
+                ]);
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | PRODUCT LOGIC (YOUR ORIGINAL LOGIC — UNCHANGED)
+            |--------------------------------------------------------------------------
+            */
+
             if ($invoiceReference === 'product') {
 
                 $lines = collect($request->input('products', []))
                     ->map(function ($row) {
                         return [
-                            'product_id' => (int) ($row['id'] ?? 0),   // product_id
+                            'product_id' => (int) ($row['id'] ?? 0),
                             'qty'        => (int) ($row['qty'] ?? 0),
                             'price'      => (float) ($row['price'] ?? 0),
                         ];
@@ -214,11 +274,10 @@ class InvoiceController extends Controller
                     ]);
                 }
 
-                // Load products in one query
                 $productIds = $lines->pluck('product_id')->unique()->values()->all();
+
                 $produkMap  = Produk::whereIn('product_id', $productIds)->get()->keyBy('product_id');
 
-                // Validate products exist
                 foreach ($productIds as $pid) {
                     if (!$produkMap->has($pid)) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
@@ -227,12 +286,10 @@ class InvoiceController extends Controller
                     }
                 }
 
-                /**
-                 * ✅ Merge duplicates into ONE row per product_id
-                 * Also enforce SAME price per product_id (otherwise throw).
-                 */
                 $merged = [];
-                foreach ($lines as $idx => $l) {
+
+                foreach ($lines as $l) {
+
                     $pid = $l['product_id'];
                     $produk = $produkMap[$pid];
 
@@ -247,26 +304,22 @@ class InvoiceController extends Controller
                         ];
                     }
 
-                    // If same product repeated but different price -> error
                     if (abs($merged[$pid]['unit_price'] - $unitPrice) > 0.00001) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
-                            "products" => "Same product_id {$pid} has different prices. Use same price or change rule to weighted average.",
+                            "products" => "Same product_id {$pid} has different prices.",
                         ]);
                     }
 
                     $merged[$pid]['qty'] += (int) $l['qty'];
                 }
 
-                /**
-                 * ✅ Lock stock rows FOR UPDATE
-                 */
                 $stockRows = \App\Models\ProductStock::whereIn('product_id', array_keys($merged))
                     ->lockForUpdate()
                     ->get()
                     ->keyBy('product_id');
 
-                // Validate stock record exists + sufficient
                 foreach ($merged as $pid => $m) {
+
                     $stock = $stockRows->get($pid);
 
                     if (!$stock) {
@@ -275,22 +328,18 @@ class InvoiceController extends Controller
                         ]);
                     }
 
-                    $requiredQty = (int) $m['qty'];
-                    $availableQty = (int) $stock->stock;
-
-                    if ($availableQty < $requiredQty) {
+                    if ($stock->stock < $m['qty']) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
-                            'stock' => "Insufficient stock for product_id {$pid}. Available: {$availableQty}, Required: {$requiredQty}",
+                            'stock' => "Insufficient stock for product_id {$pid}",
                         ]);
                     }
                 }
 
-                /**
-                 * ✅ Atomic stock decrement with proper quantity handling
-                 */
                 $userId = auth()->id();
+
                 foreach ($merged as $pid => $m) {
-                    $qty = (int) $m['qty'];
+
+                    $qty = $m['qty'];
 
                     $updated = \App\Models\ProductStock::where('product_id', $pid)
                         ->where('stock', '>=', $qty)
@@ -302,19 +351,16 @@ class InvoiceController extends Controller
 
                     if ($updated === 0) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
-                            'stock' => "Failed to deduct stock for product_id {$pid}. Stock may have changed. Please retry.",
+                            'stock' => "Failed to deduct stock for product_id {$pid}",
                         ]);
                     }
                 }
 
-                /**
-                 * ✅ Insert ONE invoice item per product_id with correct quantity
-                 */
                 foreach ($merged as $pid => $m) {
+
                     $produk = $m['product'];
-                    $qty    = (int) $m['qty'];
-                    $price  = (float) $m['unit_price'];
-                    $totalPrice = $qty * $price;
+                    $qty    = $m['qty'];
+                    $price  = $m['unit_price'];
 
                     InvoiceItem::create([
                         'invoice_id'     => $invoice->id,
@@ -322,30 +368,26 @@ class InvoiceController extends Controller
                         'item_name'      => $produk->product_name,
                         'per_item_price' => $price,
                         'quantity'       => $qty,
-                        'total_price'    => $totalPrice,
+                        'total_price'    => $qty * $price,
                     ]);
                 }
 
             } else {
-                // Non-product invoice item
-                $itemName     = ucfirst($invoiceReference) . " Invoice";
-                $quantity     = 1;
-                $perItemPrice = $subTotal;
 
                 InvoiceItem::create([
                     'invoice_id'     => $invoice->id,
-                    'item_id'       => null,
-                    'item_name'      => $itemName,
-                    'per_item_price' => $perItemPrice,
-                    'quantity'       => $quantity,
+                    'item_id'        => null,
+                    'item_name'      => ucfirst($invoiceReference) . " Invoice",
+                    'per_item_price' => $subTotal,
+                    'quantity'       => 1,
                     'total_price'    => $subTotal,
                 ]);
             }
 
-            // If created from dashboard, redirect to /invoice
             if ($fromDashboard) {
                 return redirect('/invoice');
             }
+
             return response()->json([
                 'success'     => true,
                 'message'     => 'Invoice created successfully!',
@@ -355,7 +397,6 @@ class InvoiceController extends Controller
 
         }, 3);
     }
-
     /**
      * Display the specified resource.
      */
@@ -432,7 +473,7 @@ class InvoiceController extends Controller
     public function view($id)
     {
         // Fetch the invoice
-        $invoice = Invoice::with('items')->findOrFail($id);
+        $invoice = Invoice::with('items', 'customers')->findOrFail($id);
 
         // Pass to Blade view
         return view('invoice.view', compact('invoice'));

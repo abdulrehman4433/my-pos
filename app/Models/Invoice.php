@@ -41,6 +41,11 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class, 'invoice_id');
     }
 
+    public function customers()
+    {
+        return $this->belongsToMany(Customer::class, 'customer_invoice', 'invoice_id', 'customer_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
