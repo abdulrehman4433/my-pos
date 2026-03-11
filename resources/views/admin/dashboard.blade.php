@@ -70,6 +70,24 @@
     </div>
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
+        <a href="{{ route('pembelian.index') }}">
+        <div class="small-box bg-green">
+            <div class="inner">
+                <h3 id="total-purchases">{{ $pembelian ?? 0 }}</h3>
+                <p class="p-20">Total Purchase</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-dollar"></i>
+            </div>
+        </div>
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    
+    <div class="col-lg-3 col-xs-6">
+        <!-- small box -->
         <a href="{{ route('member.index') }}">
         <div class="small-box bg-yellow">
             <div class="inner">
@@ -82,9 +100,6 @@
         </div>
         </a>
     </div>
-</div>
-
-<div class="row">
     <div class="col-lg-3 col-xs-6">
         <!-- small box -->
         <a href="{{ route('supplier.index') }}">
@@ -129,20 +144,7 @@
         </a>
     </div>
 
-    <div class="col-lg-3 col-xs-6">
-        <!-- small box -->
-        <a href="{{ route('pembelian.index') }}">
-        <div class="small-box bg-green">
-            <div class="inner">
-                <h3 id="total-purchases">{{ $pembelian ?? 0 }}</h3>
-                <p class="p-20">Total Purchase</p>
-            </div>
-            <div class="icon">
-                <i class="fa fa-dollar"></i>
-            </div>
-        </div>
-        </a>
-    </div>
+    
 </div>
 
 <div class="row">

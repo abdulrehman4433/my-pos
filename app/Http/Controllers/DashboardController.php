@@ -34,8 +34,8 @@ class DashboardController extends Controller
         $tanggal_akhir = Carbon::parse($tanggal_akhir)->endOfDay();
 
         // Master data counts filtered by created_at date range
-        $kategori = Kategori::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->count();
-        $produk = Produk::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->count();
+        $kategori = Kategori::count();
+        $produk   = Produk::count();
         $supplier = Supplier::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->count();
         $member = Member::whereBetween('created_at', [$tanggal_awal, $tanggal_akhir])->count();
 
@@ -66,7 +66,7 @@ class DashboardController extends Controller
         $pembelian = DB::table('invoice_items as ii')
             ->join('invoices as i', 'ii.invoice_id', '=', 'i.id')
             ->join('products as p', 'ii.item_id', '=', 'p.product_id')
-            ->whereBetween('i.created_at', [$tanggal_awal, $tanggal_akhir])
+            // ->whereBetween('i.created_at', [$tanggal_awal, $tanggal_akhir])
             ->where('i.payment_status', 'paid')
             ->where('i.return_status', '!=', 'full')
             ->selectRaw('SUM(ii.quantity * p.purchase_price) as total_purchase_cost')
