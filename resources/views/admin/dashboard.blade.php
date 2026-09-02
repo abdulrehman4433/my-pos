@@ -539,21 +539,21 @@ function loadDashboardData(start, end, updateStorage = true) {
 // Update all statistics on the page
 function updateAllStatistics(res) {
     // Update basic counts
-    $('#total-invoices').text(formatNumber(res.penjualan || 0));
-    $('#total-categories').text(formatNumber(res.kategori || 0));
-    $('#total-products').text(formatNumber(res.produk || 0));
-    $('#total-members').text(formatNumber(res.member || 0));
-    $('#total-suppliers').text(formatNumber(res.supplier || 0));
-    $('#total-sales').text(formatNumber(res.sales_amount || 0));
-    $('#total-expenses').text(formatNumber(res.pengeluaran || 0));
-    $('#total-purchases').text(formatNumber(res.pembelian || 0));
+    $('#total-invoices').text(res.penjualan || 0);
+    $('#total-categories').text(res.kategori || 0);
+    $('#total-products').text(res.produk || 0);
+    $('#total-members').text(res.member || 0);
+    $('#total-suppliers').text(res.supplier || 0);
+    $('#total-sales').text(res.sales_amount || 0);
+    $('#total-expenses').text(res.pengeluaran || 0);
+    $('#total-purchases').text(res.pembelian || 0);
     
     // Update payment statistics
     if (res.statistics) {
-        $('#total-cash-paid').text(formatNumber(res.statistics.total_cash_paid || 0));
-        $('#total-account-paid').text(formatNumber(res.statistics.total_account_paid || 0));
-        $('#total-pending').text(formatNumber(res.statistics.total_pending || 0));
-        $('#total-profit').text(formatNumber(res.statistics.total_profit || 0));
+        $('#total-cash-paid').text(res.statistics.total_cash_paid || 0);
+        $('#total-account-paid').text(res.statistics.total_account_paid || 0);
+        $('#total-pending').text(res.statistics.total_pending || 0);
+        $('#total-profit').text(res.statistics.total_profit || 0);
     }
     
     // Update top selling products
@@ -1132,7 +1132,7 @@ function addProductRow(product) {
             <td>${escapeHtml(product.brand) || 'N/A'}</td>
             <td>${escapeHtml(product.variant) || 'N/A'}</td>
             <td>${escapeHtml(product.unit) || 'N/A'}</td>
-            <td>${formatCurrency(product.price)}
+            <td>${(product.price)}
                 <input type="hidden" name="products[${product.id}][price]" value="${product.price}">
             </td>
             <td>

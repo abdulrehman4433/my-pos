@@ -63,14 +63,16 @@ class DashboardController extends Controller
             ->sum('amount');
             
         // Total purchases calculation (cost of goods sold during date range)
-        $pembelian = DB::table('invoice_items as ii')
-            ->join('invoices as i', 'ii.invoice_id', '=', 'i.id')
-            ->join('products as p', 'ii.item_id', '=', 'p.product_id')
-            // ->whereBetween('i.created_at', [$tanggal_awal, $tanggal_akhir])
-            ->where('i.payment_status', 'paid')
-            ->where('i.return_status', '!=', 'full')
-            ->selectRaw('SUM(ii.quantity * p.purchase_price) as total_purchase_cost')
-            ->value('total_purchase_cost');
+        $pembelian = DB::table('products as p')
+        ->leftJoin('product_stocks as ps', 'p.product_id', '=', 'ps.product_id')
+        ->leftJoin('invoice_items as ii', 'p.product_id', '=', 'ii.item_id')
+        ->selectRaw('
+            SUM(
+                (COALESCE(ps.stock,0) * p.purchase_price) +
+                (COALESCE(ii.quantity,0) * p.purchase_price)
+            ) as total_purchase_cost
+        ')
+        ->value('total_purchase_cost');
 
         // Low stock products (filter by when stock was recorded/updated within date range)
         $lowStockProducts = ProductStock::with('product')
